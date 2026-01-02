@@ -210,6 +210,11 @@ __marimo__/
 .DS_Store
 .idea/
 
-# Data
+# Data and models
 audio-mnist.zip
-data/
+data/*
+models/*
+
+# Track just the folders
+!data/.gitkeep
+!models/.gitkeep
