@@ -3,30 +3,25 @@ import torchaudio
 from snntorch import spikegen
 from torch import nn, Tensor
 
-# TODO: Move these constants out to a YAML file
-# Constants
-ORIGINAL_SAMPLE_RATE = 48_000
-TARGET_SAMPLE_RATE = 16_000
-TARGET_AUDIO_LENGTH = 0.84
-TARGET_SAMPLES = int(TARGET_SAMPLE_RATE * TARGET_AUDIO_LENGTH)
-NUM_MELS = 64
-NUM_STEPS = 100
+from src.config import AUDIO_CONFIG
+
 
 class DurationNormaliser(nn.Module):
     """
     Normalises audio duration by truncating / padding to the desired length.
     """
-    def __init__(self):
+    def __init__(self, target_samples: float):
         super().__init__()
+        self.target_samples = target_samples
 
     # noinspection PyMethodMayBeStatic
     def forward(self, x: Tensor) -> Tensor:
         num_samples = x.shape[1]
 
-        if num_samples > TARGET_SAMPLES:
-            x = x[:, :TARGET_SAMPLES]
-        elif num_samples < TARGET_SAMPLES:
-            padding_needed = TARGET_SAMPLES - num_samples
+        if num_samples > self.target_samples:
+            x = x[:, :self.target_samples]
+        elif num_samples < self.target_samples:
+            padding_needed = self.target_samples - num_samples
             x = nn.functional.pad(x, (0, padding_needed))
 
         return x
@@ -60,9 +55,10 @@ def get_waveform_transformer() -> nn.Module:
     """
     return nn.Sequential(
         torchaudio.transforms.Resample(
-            orig_freq=ORIGINAL_SAMPLE_RATE,
-            new_freq=TARGET_SAMPLE_RATE),
-        DurationNormaliser(),
+            orig_freq=AUDIO_CONFIG.original_sample_rate,
+            new_freq=AUDIO_CONFIG.target_sample_rate
+        ),
+        DurationNormaliser(target_samples=AUDIO_CONFIG.target_samples),
     )
 
 def get_spectrogram_transformer() -> nn.Module:
@@ -73,11 +69,11 @@ def get_spectrogram_transformer() -> nn.Module:
     """
     return nn.Sequential(
         torchaudio.transforms.MelSpectrogram(
-            sample_rate=TARGET_SAMPLE_RATE,
+            sample_rate=AUDIO_CONFIG.target_sample_rate,
             n_fft=1024,
             win_length=1024,
             hop_length=512,
-            n_mels=NUM_MELS,
+            n_mels=AUDIO_CONFIG.n_mels,
             power=2.0,
             pad_mode='constant',
             norm='slaney',
@@ -107,5 +103,5 @@ def get_snn_pipeline() -> nn.Module:
         get_waveform_transformer(),
         get_spectrogram_transformer(),
         MinMaxScaler(min_val=-80.0, max_val=0.0),
-        RateEncoder(num_steps=NUM_STEPS)
+        RateEncoder(num_steps=100)
     )
