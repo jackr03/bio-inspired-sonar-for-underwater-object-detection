@@ -1,6 +1,5 @@
 import torch
 import torchaudio
-from snntorch import spikegen
 from torch import nn, Tensor
 
 from src.config import AUDIO_CONFIG
@@ -38,14 +37,6 @@ class MinMaxScaler(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         x = torch.clamp(x, self.min_val, self.max_val)
         return (x - self.min_val) / (self.max_val - self.min_val)
-
-class RateEncoder(nn.Module):
-    def __init__(self, num_steps: int):
-        super().__init__()
-        self.num_steps = num_steps
-
-    def forward(self, x: Tensor) -> Tensor:
-        return spikegen.rate(x, num_steps=self.num_steps)
 
 def get_waveform_transformer() -> nn.Module:
     """
@@ -91,17 +82,14 @@ def get_cnn_pipeline() -> nn.Module:
         get_spectrogram_transformer(),
     )
 
-# TODO: Implement other encoding types
 def get_snn_pipeline() -> nn.Module:
     """
     Returns the preprocessing pipeline for SNNs:
     1. Generates the base spectrogram
-    2. Normalises dB to [0, 1]
-    3. Encodes with the specified encoding type.
+    2. Normalises dB to [0, 1] in preparation for encoding
     """
     return nn.Sequential(
         get_waveform_transformer(),
         get_spectrogram_transformer(),
-        MinMaxScaler(min_val=-80.0, max_val=0.0),
-        RateEncoder(num_steps=100)
+        MinMaxScaler(min_val=-80.0, max_val=0.0)
     )
