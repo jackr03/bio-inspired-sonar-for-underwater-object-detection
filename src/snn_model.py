@@ -31,7 +31,7 @@ class SNNAudioClassifier(nn.Module):
         super().__init__()
 
         # Encode here in the model itself for best performance
-        self.encoder = lambda x: spikegen.rate(x, num_steps=25)
+        self.encoder = lambda x: spikegen.rate(x, num_steps=10)
 
         spike_grad = surrogate.fast_sigmoid(slope)
         self.block1 = SNNConvBlock(in_channels=1, out_channels=8, kernel_size=5, stride=2, padding=2, spike_grad=spike_grad)

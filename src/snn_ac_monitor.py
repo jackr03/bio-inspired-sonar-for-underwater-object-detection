@@ -8,29 +8,14 @@ class SNNACMonitor:
     # TODO: Update later if needed
     SPIKING_LAYERS = (snn.Leaky,)
 
-    def __init__(self, model):
+    def __init__(self, model: nn.Module):
         self.model = model
-
-        self.layer_fanouts = self._calculate_fanouts()
-
-    def _calculate_fanouts(self) -> dict[str, int]:
-        fanouts = {}
-        modules = list(self.model.named_modules())
-
-        for i, (name, module) in enumerate(modules):
-            if isinstance(module, self.SPIKING_LAYERS):
-                for j in range(i + 1, len(modules)):
-                    _, next_layer = modules[j]
-                    fanout = self._calculate_fanout_for_layer(next_layer)
-                    if fanout > 0:
-                        fanouts[name] = fanout
-                        break
-
-        return fanouts
+        self._layer_fanouts = self._calculate_fanouts(model)
+        self._hooks = []
+        self._total_acs = 0
 
     @staticmethod
     def _calculate_fanout_for_layer(layer: nn.Module) -> int:
-        print(layer)
         if isinstance(layer, nn.Linear):
             # A linear layer is FC, fanout is to all output neurons
             return layer.out_features
@@ -42,3 +27,40 @@ class SNNACMonitor:
         else:
             # Otherwise return 0 as no weights to be updated in other layers
             return 0
+
+    def _hook_callback(self, fanout: int):
+        def hook(module, input, output) -> None:
+            # Need just the spikes at index 0
+            spikes = output[0].detach().sum().item()
+            self._total_acs += spikes * fanout
+        return hook
+
+    def attach(self) -> None:
+        for name, module in self.model.named_modules():
+            if name in self._layer_fanouts:
+                fanout = self._layer_fanouts[name]
+                self._hooks.append(module.register_forward_hook(self._hook_callback(fanout)))
+
+    def remove(self) -> None:
+        for hook in self._hooks:
+            hook.remove()
+        self._hooks.clear()
+
+    def get_total_acs(self) -> int:
+        return self._total_acs
+
+    @staticmethod
+    def _calculate_fanouts(model: nn.Module) -> dict[str, int]:
+        fanouts = {}
+        modules = list(model.named_modules())
+
+        for i, (name, module) in enumerate(modules):
+            if isinstance(module, SNNACMonitor.SPIKING_LAYERS):
+                for j in range(i + 1, len(modules)):
+                    _, next_layer = modules[j]
+                    fanout = SNNACMonitor._calculate_fanout_for_layer(next_layer)
+                    if fanout > 0:
+                        fanouts[name] = fanout
+                        break
+
+        return fanouts

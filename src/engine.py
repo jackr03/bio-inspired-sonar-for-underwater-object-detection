@@ -1,7 +1,9 @@
 import torch
 from torchinfo import summary
-
 from tqdm import tqdm
+
+from src.snn_ac_monitor import SNNACMonitor
+
 
 def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
     """
@@ -145,11 +147,14 @@ def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float
     return avg_loss, avg_accuracy
 
 # TODO: Benchmark latency and energy cost
-def benchmark_snn(device, model, test_dataloader) -> float:
+def benchmark_snn(device, model, test_dataloader) -> tuple[float, float]:
     """
     Benchmarks the given CNN.
     """
     model.eval()
+
+    snn_ac_monitor = SNNACMonitor(model)
+    snn_ac_monitor.attach()
 
     correct = 0
     total = 0
@@ -165,4 +170,12 @@ def benchmark_snn(device, model, test_dataloader) -> float:
             correct += (predicted == labels).sum().item()
             total += labels.size(0)
 
-    return 100 * correct / total
+    snn_ac_monitor.remove()
+
+    accuracy = 100 * correct / total
+    total_acs = snn_ac_monitor.get_total_acs()
+
+    # Divide by number of samples to get the per inference AC
+    avg_acs_per_inference = total_acs / len(test_dataloader.dataset)
+
+    return accuracy, avg_acs_per_inference
