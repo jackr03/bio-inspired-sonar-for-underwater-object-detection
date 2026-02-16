@@ -1,4 +1,6 @@
 import torch
+from torchinfo import summary
+
 from tqdm import tqdm
 
 def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
@@ -57,12 +59,16 @@ def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float
 
     return avg_loss, avg_accuracy
 
-# TODO: Benchmark latency and energy cost
-def benchmark_cnn(device, model, test_dataloader) -> float:
+def benchmark_cnn(device, model, test_dataloader) -> tuple[float, float]:
     """
-    Benchmarks the given CNN.
+    Benchmarks the given CNN, returning the accuracy and total number of MACs.
     """
     model.eval()
+
+    sample_input, _ = next(iter(test_dataloader))
+    input_size = (1, *sample_input.shape[1:])
+    model_stats = summary(model, input_size, device=device)
+    macs = model_stats.total_mult_adds
 
     correct = 0
     total = 0
@@ -77,7 +83,8 @@ def benchmark_cnn(device, model, test_dataloader) -> float:
             correct += (predicted == labels).sum().item()
             total += labels.size(0)
 
-    return 100 * correct / total
+    accuracy = 100 * correct / total
+    return accuracy, macs
 
 def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
     """
