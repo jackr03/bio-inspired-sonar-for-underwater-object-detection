@@ -146,7 +146,6 @@ def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float
 
     return avg_loss, avg_accuracy
 
-# TODO: Benchmark latency and energy cost
 def benchmark_snn(device, model, test_dataloader) -> tuple[float, float]:
     """
     Benchmarks the given CNN.

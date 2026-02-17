@@ -2,10 +2,8 @@ import snntorch as snn
 from torch import nn
 
 
-# TODO: Docstrings
 class SNNACMonitor:
-
-    # TODO: Update later if needed
+    """Monitors and accumulates the total AC operations for an SNN."""
     SPIKING_LAYERS = (snn.Leaky,)
 
     def __init__(self, model: nn.Module):
@@ -14,21 +12,8 @@ class SNNACMonitor:
         self._hooks = []
         self._total_acs = 0
 
-    @staticmethod
-    def _calculate_fanout_for_layer(layer: nn.Module) -> int:
-        if isinstance(layer, nn.Linear):
-            # A linear layer is FC, fanout is to all output neurons
-            return layer.out_features
-        elif isinstance(layer, nn.Conv2d):
-            # For a conv layer, each pixel affects kernel_size^2 * out_channels neurons
-            # This is an upper limit, as we don't take into account stride or padding (which would decrease fanout)
-            # TODO: Do we need to take into account stride and padding?
-            return layer.kernel_size[0] * layer.kernel_size[1] * layer.out_channels
-        else:
-            # Otherwise return 0 as no weights to be updated in other layers
-            return 0
-
     def _hook_callback(self, fanout: int):
+        """Creates a closure to be used as a hook callback for counting spikes."""
         def hook(module, input, output) -> None:
             # Need just the spikes at index 0
             spikes = output[0].detach().sum().item()
@@ -36,21 +21,25 @@ class SNNACMonitor:
         return hook
 
     def attach(self) -> None:
+        """Registers hook callbacks to all spiking layers in the model."""
         for name, module in self.model.named_modules():
             if name in self._layer_fanouts:
                 fanout = self._layer_fanouts[name]
                 self._hooks.append(module.register_forward_hook(self._hook_callback(fanout)))
 
     def remove(self) -> None:
+        """Removes all registered hooks from the model."""
         for hook in self._hooks:
             hook.remove()
         self._hooks.clear()
 
     def get_total_acs(self) -> int:
+        """Returns the total number of AC operations recorded."""
         return self._total_acs
 
     @staticmethod
     def _calculate_fanouts(model: nn.Module) -> dict[str, int]:
+        """Creates a map of layer names -> number of fanouts from said layer."""
         fanouts = {}
         modules = list(model.named_modules())
 
@@ -64,3 +53,18 @@ class SNNACMonitor:
                         break
 
         return fanouts
+
+    @staticmethod
+    def _calculate_fanout_for_layer(layer: nn.Module) -> int:
+        """Calculates the number of connections for a single neuron in a weighted layer."""
+        if isinstance(layer, nn.Linear):
+            # A linear layer is FC, fanout is to all output neurons
+            return layer.out_features
+        elif isinstance(layer, nn.Conv2d):
+            # For a conv layer, each pixel affects kernel_size^2 * out_channels neurons
+            # This is an upper limit, as we don't take into account stride or padding (which would decrease fanout)
+            # TODO: Do we need to take into account stride and padding?
+            return layer.kernel_size[0] * layer.kernel_size[1] * layer.out_channels
+        else:
+            # Otherwise return 0 as no weights to be updated in other layers
+            return 0
