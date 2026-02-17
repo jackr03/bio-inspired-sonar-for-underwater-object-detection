@@ -3,9 +3,7 @@ from torch.utils.data import DataLoader, Dataset, random_split
 
 
 def get_random_audio(base_dir: str) -> str:
-    """
-    Randomly select a digit, speaker and sample and return its path.
-    """
+    """Randomly select a digit, speaker and sample from the AudioMNIST dataset and return its path."""
     digit = np.random.randint(0, 10)
     speaker = np.random.randint(1, 61)
     sample = np.random.randint(0, 50)
@@ -18,10 +16,7 @@ def get_random_audio(base_dir: str) -> str:
 # TODO: Add seed for reproducibility
 # TODO: Check if 80/10/10 is the split
 def get_split_dataloaders(dataset: Dataset, batch_size: int = 64) -> tuple[DataLoader, DataLoader, DataLoader]:
-    """
-    Returns an 80/10/10 split of DataLoaders from the given dataset.
-    :return:
-    """
+    """Returns an 80/10/10 split of DataLoaders from the given dataset."""
     train_size = int(0.8 * len(dataset))
     val_size = int(0.1 * len(dataset))
     test_size = len(dataset) - train_size - val_size

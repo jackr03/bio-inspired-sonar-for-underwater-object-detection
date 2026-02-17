@@ -9,9 +9,7 @@ from torch.utils.data import Dataset
 
 
 class AudioDataset(Dataset):
-    """
-    A custom DataSet for audio files.
-    """
+    """A custom DataSet for audio files."""
     def __init__(self, data_dir: str, pipeline: nn.Module):
         self.pipeline = pipeline
         self.audio_files = glob.glob(os.path.join(data_dir, '**/*.wav'), recursive=True)

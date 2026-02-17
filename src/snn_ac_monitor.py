@@ -13,7 +13,6 @@ class SNNACMonitor:
         self._total_acs = 0
 
     def _hook_callback(self, fanout: int):
-        """Creates a closure to be used as a hook callback for counting spikes."""
         def hook(module, input, output) -> None:
             # Need just the spikes at index 0
             spikes = output[0].detach().sum().item()
@@ -39,7 +38,6 @@ class SNNACMonitor:
 
     @staticmethod
     def _calculate_fanouts(model: nn.Module) -> dict[str, int]:
-        """Creates a map of layer names -> number of fanouts from said layer."""
         fanouts = {}
         modules = list(model.named_modules())
 
@@ -56,7 +54,6 @@ class SNNACMonitor:
 
     @staticmethod
     def _calculate_fanout_for_layer(layer: nn.Module) -> int:
-        """Calculates the number of connections for a single neuron in a weighted layer."""
         if isinstance(layer, nn.Linear):
             # A linear layer is FC, fanout is to all output neurons
             return layer.out_features

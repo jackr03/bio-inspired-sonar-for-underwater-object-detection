@@ -6,9 +6,7 @@ from src.snn_ac_monitor import SNNACMonitor
 
 
 def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
-    """
-    Trains the given CNN for one epoch.
-    """
+    """Trains the given CNN for one epoch."""
     model.train()
 
     total_loss = 0.0
@@ -36,9 +34,7 @@ def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -
     return avg_loss, avg_accuracy
 
 def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float]:
-    """
-    Validates the given CNN.
-    """
+    """Validates the given CNN."""
     model.eval()
 
     total_loss = 0.0
@@ -62,9 +58,7 @@ def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float
     return avg_loss, avg_accuracy
 
 def benchmark_cnn(device, model, test_dataloader) -> tuple[float, float]:
-    """
-    Benchmarks the given CNN, returning the accuracy and total number of MACs.
-    """
+    """Benchmarks the given CNN, returning the accuracy and total number of MACs."""
     model.eval()
 
     sample_input, _ = next(iter(test_dataloader))
@@ -89,9 +83,7 @@ def benchmark_cnn(device, model, test_dataloader) -> tuple[float, float]:
     return accuracy, macs
 
 def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
-    """
-    Trains the given SNN for one epoch.
-    """
+    """Trains the given SNN for one epoch."""
     model.train()
 
     total_loss = 0.0
@@ -120,9 +112,7 @@ def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -
     return avg_loss, avg_accuracy
 
 def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float]:
-    """
-    Validates the given SNN.
-    """
+    """Validates the given SNN."""
     model.eval()
 
     total_loss = 0.0
@@ -147,9 +137,7 @@ def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float
     return avg_loss, avg_accuracy
 
 def benchmark_snn(device, model, test_dataloader) -> tuple[float, float]:
-    """
-    Benchmarks the given CNN.
-    """
+    """Benchmarks the given CNN."""
     model.eval()
 
     snn_ac_monitor = SNNACMonitor(model)

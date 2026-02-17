@@ -6,9 +6,7 @@ from src.config import AUDIO_CONFIG
 
 
 class DurationNormaliser(nn.Module):
-    """
-    Normalises audio duration by truncating / padding to the desired length.
-    """
+    """Normalises audio duration by truncating / padding to the desired length."""
     def __init__(self, target_samples: float):
         super().__init__()
         self.target_samples = target_samples
@@ -26,9 +24,7 @@ class DurationNormaliser(nn.Module):
         return x
 
 class MinMaxScaler(nn.Module):
-    """
-    Clamps decibel values between the max and min values provided before normalising to return a value in [0, 1].
-    """
+    """Clamps decibel values between the max and min values provided before normalising to return a value in [0, 1]."""
     def __init__(self, min_val=-80.0, max_val=0.0):
         super().__init__()
         self.min_val = min_val
@@ -74,9 +70,7 @@ def get_spectrogram_transformer() -> nn.Module:
     )
 
 def get_cnn_pipeline() -> nn.Module:
-    """
-    Returns the preprocessing pipeline for CNNs.
-    """
+    """Returns the preprocessing pipeline for CNNs."""
     return nn.Sequential(
         get_waveform_transformer(),
         get_spectrogram_transformer(),
@@ -91,5 +85,5 @@ def get_snn_pipeline() -> nn.Module:
     return nn.Sequential(
         get_waveform_transformer(),
         get_spectrogram_transformer(),
-        MinMaxScaler(min_val=-80.0, max_val=0.0)
+        MinMaxScaler()
     )
