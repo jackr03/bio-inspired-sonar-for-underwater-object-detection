@@ -2,7 +2,7 @@ import torch
 import torchaudio
 from torch import nn, Tensor
 
-from src.config import AUDIO_CONFIG
+from src.config import CONFIG
 
 
 class DurationNormaliser(nn.Module):
@@ -42,10 +42,10 @@ def get_waveform_transformer() -> nn.Module:
     """
     return nn.Sequential(
         torchaudio.transforms.Resample(
-            orig_freq=AUDIO_CONFIG.original_sample_rate,
-            new_freq=AUDIO_CONFIG.target_sample_rate
+            orig_freq=CONFIG.audio.original_sample_rate,
+            new_freq=CONFIG.audio.target_sample_rate
         ),
-        DurationNormaliser(target_samples=AUDIO_CONFIG.target_samples),
+        DurationNormaliser(target_samples=CONFIG.audio.target_samples),
     )
 
 def get_spectrogram_transformer() -> nn.Module:
@@ -56,11 +56,11 @@ def get_spectrogram_transformer() -> nn.Module:
     """
     return nn.Sequential(
         torchaudio.transforms.MelSpectrogram(
-            sample_rate=AUDIO_CONFIG.target_sample_rate,
+            sample_rate=CONFIG.audio.target_sample_rate,
             n_fft=1024,
             win_length=1024,
             hop_length=512,
-            n_mels=AUDIO_CONFIG.n_mels,
+            n_mels=CONFIG.audio.n_mels,
             power=2.0,
             pad_mode='constant',
             norm='slaney',

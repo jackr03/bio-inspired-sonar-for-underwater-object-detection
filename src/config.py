@@ -12,4 +12,10 @@ class AudioConfig:
     def target_samples(self) -> int:
         return int(self.target_sample_rate * self.target_duration)
 
-AUDIO_CONFIG = AudioConfig()
+@dataclass(frozen=True)
+class Config:
+    seed: int = 100
+    delta_threshold: float = 0.1
+    audio: AudioConfig = AudioConfig()
+
+CONFIG = Config()

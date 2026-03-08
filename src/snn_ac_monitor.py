@@ -57,10 +57,11 @@ class SNNACMonitor:
         if isinstance(layer, nn.Linear):
             # A linear layer is FC, fanout is to all output neurons
             return layer.out_features
+        elif isinstance(layer, nn.Conv1d):
+            return layer.kernel_size[0] * layer.out_channels
         elif isinstance(layer, nn.Conv2d):
             # For a conv layer, each pixel affects kernel_size^2 * out_channels neurons
             # This is an upper limit, as we don't take into account stride or padding (which would decrease fanout)
-            # TODO: Do we need to take into account stride and padding?
             return layer.kernel_size[0] * layer.kernel_size[1] * layer.out_channels
         else:
             # Otherwise return 0 as no weights to be updated in other layers

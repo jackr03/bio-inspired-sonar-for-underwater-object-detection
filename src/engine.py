@@ -3,11 +3,11 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from torchinfo import summary
 from tqdm.auto import tqdm
 
+from src.config import CONFIG
 from src.snn_ac_monitor import SNNACMonitor
 
 
-# TODO: Add seed for reproducibility
-def get_split_dataloaders(dataset: Dataset, batch_size: int = 64) -> tuple[DataLoader, DataLoader, DataLoader]:
+def get_split_dataloaders(dataset: Dataset, seed: int = CONFIG.seed, batch_size: int = 64) -> tuple[DataLoader, DataLoader, DataLoader]:
     """Returns an 80/10/10 split of DataLoaders from the given dataset."""
     train_size = int(0.8 * len(dataset))
     val_size = int(0.1 * len(dataset))
@@ -15,6 +15,7 @@ def get_split_dataloaders(dataset: Dataset, batch_size: int = 64) -> tuple[DataL
 
     train_dataset, val_dataset, test_dataset = random_split(
         dataset, [train_size, val_size, test_size],
+        generator=torch.Generator().manual_seed(seed)
     )
 
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=4, persistent_workers=True, pin_memory=True, shuffle=True, drop_last=True)
