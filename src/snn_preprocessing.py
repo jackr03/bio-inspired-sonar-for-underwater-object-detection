@@ -22,6 +22,7 @@ OUTPUT_DIR = ROOT_DIR / 'processed' / 'audioMNIST'
 DELTA_THRESHOLD = 0.1
 
 
+# TODO: Move to a notebook
 def process_file(file_path: Path, pipeline: nn.Module, output_dir: Path) -> None:
     try:
         waveform, _ = torchaudio.load(file_path)

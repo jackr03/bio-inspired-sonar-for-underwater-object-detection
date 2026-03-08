@@ -1,0 +1,22 @@
+[
+  {
+    "accuracy": 99.2,
+    "timesteps": 10.0,
+    "params": {
+      "lr": 0.0037713335578958983,
+      "beta_init": 0.6817066620284646,
+      "slope": 12,
+      "timesteps": 10
+    }
+  },
+  {
+    "accuracy": 96.16666666666667,
+    "timesteps": 5.0,
+    "params": {
+      "lr": 0.0011294180741471436,
+      "beta_init": 0.5926781818566089,
+      "slope": 29,
+      "timesteps": 5
+    }
+  }
+]

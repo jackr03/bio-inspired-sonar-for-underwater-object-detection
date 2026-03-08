@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchinfo import summary
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from src.snn_ac_monitor import SNNACMonitor
 
@@ -24,13 +24,13 @@ def get_split_dataloaders(dataset: Dataset, batch_size: int = 64) -> tuple[DataL
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
+def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader, leave: bool = True) -> tuple[float, float]:
     model.train()
 
     total_loss = 0.0
     correct = 0
     total = 0
-    for inputs, labels in tqdm(train_dataloader, desc='Training', unit='batches'):
+    for inputs, labels in tqdm(train_dataloader, desc='Training', unit='batches', leave=leave):
         inputs = inputs.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
 
@@ -51,14 +51,14 @@ def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -
 
     return avg_loss, avg_accuracy
 
-def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float]:
+def validate_cnn(device, model, criterion, val_dataloader, leave: bool = True) -> tuple[float, float]:
     model.eval()
 
     total_loss = 0.0
     correct = 0
     total = 0
     with torch.inference_mode():
-        for inputs, labels in tqdm(val_dataloader, desc='Validating', unit='batches'):
+        for inputs, labels in tqdm(val_dataloader, desc='Validating', unit='batches', leave=leave):
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 
@@ -98,13 +98,13 @@ def benchmark_cnn(device, model, test_dataloader) -> tuple[float, float]:
     accuracy = 100 * correct / total
     return accuracy, macs
 
-def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
+def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader, leave: bool = True) -> tuple[float, float]:
     model.train()
 
     total_loss = 0.0
     correct = 0
     total = 0
-    for inputs, labels in tqdm(train_dataloader, desc='Training', unit='batches'):
+    for inputs, labels in tqdm(train_dataloader, desc='Training', unit='batches', leave=leave):
         inputs = inputs.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
 
@@ -126,14 +126,14 @@ def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -
 
     return avg_loss, avg_accuracy
 
-def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float]:
+def validate_snn(device, model, criterion, val_dataloader, leave: bool = True) -> tuple[float, float]:
     model.eval()
 
     total_loss = 0.0
     correct = 0
     total = 0
     with torch.inference_mode():
-        for inputs, labels in tqdm(val_dataloader, desc='Validating', unit='batches'):
+        for inputs, labels in tqdm(val_dataloader, desc='Validating', unit='batches', leave=leave):
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 

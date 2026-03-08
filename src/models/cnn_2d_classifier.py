@@ -17,6 +17,9 @@ class CNNConv2dBlock(nn.Module):
         return self.block(x)
 
 class CNN2DClassifier(nn.Module):
+
+    NAME = 'cnn_2d'
+
     def __init__(self):
         super().__init__()
 
