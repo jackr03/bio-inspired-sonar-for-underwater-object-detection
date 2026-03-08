@@ -1,6 +1,5 @@
-import glob
-import os
 import warnings
+from pathlib import Path
 
 import torch
 import torchaudio
@@ -9,16 +8,10 @@ from torch.utils.data import Dataset
 
 
 class AudioDataset(Dataset):
-    """A custom DataSet for audio files."""
-    def __init__(self, data_dir: str, pipeline: nn.Module):
+    def __init__(self, input_dir: Path, pipeline: nn.Module):
         self.pipeline = pipeline
-        self.audio_files = glob.glob(os.path.join(data_dir, '**/*.wav'), recursive=True)
-
-        self.labels = []
-        for file in self.audio_files:
-            filename = os.path.basename(file)
-            label = int(filename.split('_')[0])
-            self.labels.append(label)
+        self.audio_files = list(input_dir.rglob('*.wav'))
+        self.labels = [int(path.name.split('_')[0]) for path in self.audio_files]
 
     def __len__(self) -> int:
         return len(self.audio_files)

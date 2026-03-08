@@ -6,7 +6,6 @@ from torch.utils.data import Dataset
 
 
 class SpikeDataset(Dataset):
-    """A custom Dataset for preprocessed spikes."""
     def __init__(self, data_dir: str) -> None:
         self.file_paths = list(Path(data_dir).rglob('*.pt'))
         self.labels = [int(path.parent.name) for path in self.file_paths]

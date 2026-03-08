@@ -1,12 +1,30 @@
 import torch
+from torch.utils.data import Dataset, DataLoader, random_split
 from torchinfo import summary
 from tqdm import tqdm
 
 from src.snn_ac_monitor import SNNACMonitor
 
 
+# TODO: Add seed for reproducibility
+def get_split_dataloaders(dataset: Dataset, batch_size: int = 64) -> tuple[DataLoader, DataLoader, DataLoader]:
+    """Returns an 80/10/10 split of DataLoaders from the given dataset."""
+    train_size = int(0.8 * len(dataset))
+    val_size = int(0.1 * len(dataset))
+    test_size = len(dataset) - train_size - val_size
+
+    train_dataset, val_dataset, test_dataset = random_split(
+        dataset, [train_size, val_size, test_size],
+    )
+
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=4, persistent_workers=True, pin_memory=True, shuffle=True, drop_last=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
+
+    return train_dataloader, val_dataloader, test_dataloader
+
+
 def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
-    """Trains the given CNN for one epoch."""
     model.train()
 
     total_loss = 0.0
@@ -34,7 +52,6 @@ def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -
     return avg_loss, avg_accuracy
 
 def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float]:
-    """Validates the given CNN."""
     model.eval()
 
     total_loss = 0.0
@@ -58,7 +75,6 @@ def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float
     return avg_loss, avg_accuracy
 
 def benchmark_cnn(device, model, test_dataloader) -> tuple[float, float]:
-    """Benchmarks the given CNN, returning the accuracy and total number of MACs."""
     model.eval()
 
     sample_input, _ = next(iter(test_dataloader))
@@ -83,7 +99,6 @@ def benchmark_cnn(device, model, test_dataloader) -> tuple[float, float]:
     return accuracy, macs
 
 def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
-    """Trains the given SNN for one epoch."""
     model.train()
 
     total_loss = 0.0
@@ -112,7 +127,6 @@ def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -
     return avg_loss, avg_accuracy
 
 def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float]:
-    """Validates the given SNN."""
     model.eval()
 
     total_loss = 0.0
@@ -137,7 +151,6 @@ def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float
     return avg_loss, avg_accuracy
 
 def benchmark_snn(device, model, test_dataloader) -> tuple[float, float]:
-    """Benchmarks the given CNN."""
     model.eval()
 
     snn_ac_monitor = SNNACMonitor(model)

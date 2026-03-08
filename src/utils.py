@@ -1,32 +1,24 @@
-import numpy as np
-from torch.utils.data import DataLoader, Dataset, random_split
+from matplotlib import pyplot as plt
 
 
-def get_random_audio(base_dir: str) -> str:
-    """Randomly select a digit, speaker and sample from the AudioMNIST dataset and return its path."""
-    digit = np.random.randint(0, 10)
-    speaker = np.random.randint(1, 61)
-    sample = np.random.randint(0, 50)
+def plot_training_history(train_losses: list[float], train_accs: list[float], val_losses: list[float], val_accs: list[float]) -> None:
+    epochs = range(1, len(train_losses) + 1)
 
-    if speaker < 10:
-        return f'{base_dir}/0{speaker}/{digit}_0{speaker}_{sample}.wav'
-    else:
-        return f'{base_dir}/{speaker}/{digit}_{speaker}_{sample}.wav'
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 8), sharex=True)
 
-# TODO: Add seed for reproducibility
-# TODO: Check if 80/10/10 is the split
-def get_split_dataloaders(dataset: Dataset, batch_size: int = 64) -> tuple[DataLoader, DataLoader, DataLoader]:
-    """Returns an 80/10/10 split of DataLoaders from the given dataset."""
-    train_size = int(0.8 * len(dataset))
-    val_size = int(0.1 * len(dataset))
-    test_size = len(dataset) - train_size - val_size
+    ax1.plot(epochs, train_losses, label='Train')
+    ax1.plot(epochs, val_losses, label='Validation')
+    ax1.set_xlabel('Epochs')
+    ax1.set_ylabel('Loss')
+    ax1.legend()
+    ax1.grid(True)
 
-    train_dataset, val_dataset, test_dataset = random_split(
-        dataset, [train_size, val_size, test_size],
-    )
+    ax2.plot(epochs, train_accs, label='Train')
+    ax2.plot(epochs, val_accs, label='Validation')
+    ax2.set_xlabel('Epochs')
+    ax2.set_ylabel('Accuracy (%)')
+    ax2.legend()
+    ax2.grid(True)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=4, persistent_workers=True, pin_memory=True, shuffle=True, drop_last=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
-
-    return train_dataloader, val_dataloader, test_dataloader
+    plt.tight_layout()
+    plt.show()

@@ -3,22 +3,20 @@ import torch
 from snntorch import surrogate
 from torch import nn, Tensor
 
-class SNNConvBlock(nn.Module):
+class SNN1dConvBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, kernel_size: int, spike_grad):
         super().__init__()
 
-        self.beta = torch.ones(1, out_channels, 1) * 0.9
+        beta = torch.ones(1, out_channels, 1) * 0.90
 
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size=kernel_size)
         self.pool = nn.MaxPool1d(kernel_size=2)
-        # self.bn = nn.BatchNorm1d(out_channels)
-        self.lif = snn.Leaky(spike_grad=spike_grad, beta=self.beta, learn_beta=True)
+        self.lif = snn.Leaky(spike_grad=spike_grad, beta=beta, learn_beta=True)
 
         nn.init.kaiming_normal_(self.conv.weight, nonlinearity='relu')
 
     def forward(self, x: Tensor, mem: Tensor) -> tuple[Tensor, Tensor]:
         x = self.conv(x)
-        # x = self.bn(x)
         x = self.pool(x)
         spk, mem = self.lif(x, mem)
 
@@ -27,22 +25,22 @@ class SNNConvBlock(nn.Module):
     def init_leaky(self) -> Tensor:
         return self.lif.init_leaky()
 
-class SNNAudioClassifier(nn.Module):
+class SNN2DEncodedClassifier(nn.Module):
     def __init__(self, slope: int):
         super().__init__()
 
         spike_grad = surrogate.fast_sigmoid(slope)
-        self.block1 = SNNConvBlock(in_channels=2, out_channels=8, kernel_size=5, spike_grad=spike_grad)
-        self.block2 = SNNConvBlock(in_channels=8, out_channels=16, kernel_size=3, spike_grad=spike_grad)
-        self.block3 = SNNConvBlock(in_channels=16, out_channels=32, kernel_size=3, spike_grad=spike_grad)
+        self.block1 = SNN1dConvBlock(in_channels=2, out_channels=8, kernel_size=5, spike_grad=spike_grad)
+        self.block2 = SNN1dConvBlock(in_channels=8, out_channels=16, kernel_size=3, spike_grad=spike_grad)
+        self.block3 = SNN1dConvBlock(in_channels=16, out_channels=32, kernel_size=3, spike_grad=spike_grad)
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(192, 10)
         )
 
-        self.beta_out = torch.ones(10) * 0.9
-        self.lif_out = snn.Leaky(spike_grad=spike_grad, beta=self.beta_out, learn_beta=True, output=True)
+        beta_out = torch.ones(10) * 0.90
+        self.lif_out = snn.Leaky(spike_grad=spike_grad, beta=beta_out, learn_beta=True, output=True)
 
     def forward(self, x: Tensor) -> Tensor:
         # Expected shape of tensor is [Batch, Channel, Time, Mel Bins]
@@ -52,7 +50,6 @@ class SNNAudioClassifier(nn.Module):
         mem_out = self.lif_out.init_leaky()
 
         spk_rec = []
-
         for t in range(x.shape[2]):
             x_t = x[:, :, t, :]
 
