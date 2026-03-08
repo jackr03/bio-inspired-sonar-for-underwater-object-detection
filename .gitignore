@@ -219,4 +219,4 @@ processed/*
 # Track just the folders
 !data/.gitkeep
 !models/.gitkeep
-!models/.gitkeep
+!processed/.gitkeep
