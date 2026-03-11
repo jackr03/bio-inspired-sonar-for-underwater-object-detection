@@ -14,7 +14,7 @@ def run_sweep(objective, output_path: Path, n_trials: int) -> None:
     print(f'Accuracy: {study.best_value:.2f}%')
     print(f'Parameters: {study.best_params}')
 
-    output_path.mkdir(parents=True, exist_ok=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, 'w') as f:
         json.dump(study.best_params, f, indent=2)
 
@@ -35,7 +35,7 @@ def run_sweep_pareto(objective, output_path: Path, n_trials: int) -> None:
         })
     pareto_results.sort(key=lambda x: x['accuracy'], reverse=True)
 
-    output_path.mkdir(parents=True, exist_ok=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, 'w') as f:
         json.dump(pareto_results, f, indent=2)
 
