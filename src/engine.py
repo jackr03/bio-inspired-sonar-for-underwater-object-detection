@@ -75,7 +75,7 @@ def validate_cnn(device, model, criterion, val_dataloader, leave: bool = True) -
 
     return avg_loss, avg_accuracy
 
-def benchmark_cnn(device, model, test_dataloader) -> tuple[float, float]:
+def benchmark_cnn(device, model, test_dataloader, leave: bool = True) -> tuple[float, int]:
     model.eval()
 
     sample_input, _ = next(iter(test_dataloader))
@@ -86,7 +86,7 @@ def benchmark_cnn(device, model, test_dataloader) -> tuple[float, float]:
     correct = 0
     total = 0
     with torch.inference_mode():
-        for inputs, labels in tqdm(test_dataloader, desc='Benchmarking', unit='batches'):
+        for inputs, labels in tqdm(test_dataloader, desc='Benchmarking', unit='batches', leave=leave):
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 
@@ -152,7 +152,7 @@ def validate_snn(device, model, criterion, val_dataloader, leave: bool = True) -
     return avg_loss, avg_accuracy
 
 
-def benchmark_snn(device, model, test_dataloader, direct_encoded: bool = False) -> tuple[float, float, float]:
+def benchmark_snn(device, model, test_dataloader, direct_encoded: bool = False, leave: bool = True) -> tuple[float, int, int]:
     """Returns a tuple of (accuracy, avg_acs, first_layer_macs)."""
     model.eval()
 
@@ -162,7 +162,7 @@ def benchmark_snn(device, model, test_dataloader, direct_encoded: bool = False) 
     correct = 0
     total = 0
     with torch.inference_mode():
-        for inputs, labels in tqdm(test_dataloader, desc='Benchmarking', unit='batches'):
+        for inputs, labels in tqdm(test_dataloader, desc='Benchmarking', unit='batches', leave=leave):
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 
@@ -180,7 +180,7 @@ def benchmark_snn(device, model, test_dataloader, direct_encoded: bool = False) 
     total_macs = _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if direct_encoded else 0
 
     # Divide by number of samples to get the per inference AC
-    avg_acs_per_inference = total_acs / len(test_dataloader.dataset)
+    avg_acs_per_inference = int(total_acs / len(test_dataloader.dataset))
 
     return accuracy, avg_acs_per_inference, total_macs
 

@@ -4,6 +4,9 @@ from pathlib import Path
 import optuna
 from matplotlib import pyplot as plt
 
+MAC_ENERGY_PJ = 3.7 + 0.9
+AC_ENERGY_PJ = 0.9
+
 
 def run_sweep(objective, output_path: Path, n_trials: int) -> None:
     print('Running hyperparameter sweep...')
@@ -63,3 +66,15 @@ def plot_training_history(train_losses: list[float], train_accs: list[float], va
 
     plt.tight_layout()
     plt.show()
+
+
+def estimate_energy(macs: int, acs: int) -> dict:
+    """Given MACs and ACs, estimate energy usage in uJ."""
+    mac_energy = macs * MAC_ENERGY_PJ * 1e-6
+    ac_energy = acs * AC_ENERGY_PJ * 1e-6
+    total = mac_energy + ac_energy * 1e-6
+    return {
+        'mac_uJ': mac_energy,
+        'ac_uJ': ac_energy,
+        'total_uJ': total,
+    }
