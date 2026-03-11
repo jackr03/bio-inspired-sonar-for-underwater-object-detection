@@ -151,7 +151,9 @@ def validate_snn(device, model, criterion, val_dataloader, leave: bool = True) -
 
     return avg_loss, avg_accuracy
 
-def benchmark_snn(device, model, test_dataloader) -> tuple[float, float]:
+
+def benchmark_snn(device, model, test_dataloader, direct_encoded: bool = False) -> tuple[float, float, float]:
+    """Returns a tuple of (accuracy, avg_acs, first_layer_macs)."""
     model.eval()
 
     snn_ac_monitor = SNNACMonitor(model)
@@ -175,8 +177,26 @@ def benchmark_snn(device, model, test_dataloader) -> tuple[float, float]:
 
     accuracy = 100 * correct / total
     total_acs = snn_ac_monitor.get_total_acs()
+    total_macs = _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if direct_encoded else 0
 
     # Divide by number of samples to get the per inference AC
     avg_acs_per_inference = total_acs / len(test_dataloader.dataset)
 
-    return accuracy, avg_acs_per_inference
+    return accuracy, avg_acs_per_inference, total_macs
+
+def _calculate_conv2d_macs(model, sample_input: torch.Tensor) -> int:
+    """
+    Calculates the MACs for a Conv2d across all timesteps.
+    For use with an SNN using direct coding, as the first layer receives continuous values and not spikes, which we need to account for.
+    """
+    conv2d = model.block1.conv
+    h_in, w_in = sample_input.shape[2], sample_input.shape[3]
+    h_k, w_k = conv2d.kernel_size
+    h_s, w_s = conv2d.stride
+    h_p, w_p = conv2d.padding
+
+    h_out = ((h_in - h_k + 2 * h_p) // h_s) + 1
+    w_out = ((w_in - w_k + 2 * w_p) // w_s) + 1
+
+    macs_per_timestep = conv2d.in_channels * h_k * w_k * conv2d.out_channels * h_out * w_out
+    return macs_per_timestep * model.timesteps
