@@ -4,14 +4,16 @@ from pathlib import Path
 import optuna
 from matplotlib import pyplot as plt
 
+from config import CONFIG
+
 MAC_ENERGY_PJ = 3.7 + 0.9
 AC_ENERGY_PJ = 0.9
 
 
-def run_sweep(objective, output_path: Path, n_trials: int) -> None:
+def run_sweep(objective, output_path: Path) -> None:
     print('Running hyperparameter sweep...')
     study = optuna.create_study(direction='maximize', pruner=optuna.pruners.MedianPruner())
-    study.optimize(objective, n_trials=n_trials)
+    study.optimize(objective, n_trials=CONFIG.hyperparameter_tuning.trials)
 
     print('Hyperparameter sweep completed.')
     print(f'Accuracy: {study.best_value:.2f}%')
@@ -21,11 +23,11 @@ def run_sweep(objective, output_path: Path, n_trials: int) -> None:
     with open(output_path, 'w') as f:
         json.dump(study.best_params, f, indent=2)
 
-def run_sweep_pareto(objective, output_path: Path, n_trials: int) -> None:
+def run_sweep_pareto(objective, output_path: Path) -> None:
     """A special hyperparameter sweep for finding the Pareto front, e.g. maximising SNN accuracy while minimising timesteps."""
     print('Running hyperparameter sweep (Pareto front)...')
     study = optuna.create_study(directions=['maximize', 'minimize'])
-    study.optimize(objective, n_trials=n_trials)
+    study.optimize(objective, n_trials=CONFIG.hyperparameter_tuning.trials)
 
     print('[REMEMBER TO MANUALLY SELECT BEST SET OF HYPERPARAMETERS]')
     print('Hyperparameter sweep completed.')
