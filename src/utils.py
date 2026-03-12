@@ -4,7 +4,7 @@ from pathlib import Path
 import optuna
 from matplotlib import pyplot as plt
 
-from config import CONFIG
+from src.config import CONFIG
 
 MAC_ENERGY_PJ = 3.7 + 0.9
 AC_ENERGY_PJ = 0.9
@@ -68,6 +68,38 @@ def plot_training_history(train_losses: list[float], train_accs: list[float], va
 
     plt.tight_layout()
     plt.show()
+
+
+def plot_accuracy_comparison(ax, model1_name: str, model1_acc: float, model2_name: str, model2_acc: float) -> None:
+    models = [model1_name, model2_name]
+    accuracies = [model1_acc, model2_acc]
+    colours = ['#4C72B0', '#DD8452']
+
+    bars = ax.bar(models, accuracies, color=colours, width=0.5)
+    ax.bar_label(bars, fmt='%.2f%%', padding=4)
+    ax.set_title('Model Accuracies')
+    ax.set_ylabel('Accuracy (%)')
+    ax.set_ylim(0, 100)
+
+
+def plot_energy_comparison(ax, model1_name: str, model1_macs: int, model1_acs: int, model2_name: str, model2_macs: int, model2_acs: int) -> None:
+    energy1 = estimate_energy(model1_macs, model1_acs)
+    energy2 = estimate_energy(model2_macs, model2_acs)
+
+    models = [model1_name, model2_name]
+    mac_energies = [energy1['mac_uJ'], energy2['mac_uJ']]
+    ac_energies = [energy1['ac_uJ'], energy2['ac_uJ']]
+
+    bars_mac = ax.bar(models, mac_energies, color='#6A4C93', width=0.5, label='MACs')
+    bars_ac = ax.bar(models, ac_energies, color='#1982C4', width=0.5, bottom=mac_energies, label='ACs')
+
+    totals = [m + a for m, a in zip(mac_energies, ac_energies)]
+    ax.bar_label(bars_ac, labels=[f'{t:.2f} µJ' for t in totals], padding=4)
+
+    ax.set_title('Estimated Energy per Inference')
+    ax.set_ylabel('Energy (µJ)')
+    ax.set_ylim(0, ax.get_ylim()[1] * 1.15)  # Just so label at the top doesn't hit the border
+    ax.legend()
 
 
 def estimate_energy(macs: int, acs: int) -> dict:

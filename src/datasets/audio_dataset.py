@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 class AudioDataset(Dataset):
     def __init__(self, input_dir: Path, pipeline: nn.Module):
         self.pipeline = pipeline
-        self.audio_files = list(input_dir.rglob('*.wav'))
+        self.audio_files = sorted(input_dir.rglob('*.wav'), key=lambda x: int(x.stem))
         self.labels = [int(path.name.split('_')[0]) for path in self.audio_files]
 
     def __len__(self) -> int:

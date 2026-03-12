@@ -7,8 +7,8 @@ from torch.utils.data import Dataset
 
 class SpikeDataset(Dataset):
     def __init__(self, data_dir: Path) -> None:
-        self.file_paths = list(data_dir.rglob('*.pt'))
-        self.labels = [int(path.parent.name) for path in self.file_paths]
+        self.file_paths = sorted(data_dir.rglob('*.pt'), key=lambda x: int(x.stem))
+        self.labels = [int(path.name.split('_')[0]) for path in self.file_paths]
 
     def __len__(self) -> int:
         return len(self.file_paths)
