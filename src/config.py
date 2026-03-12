@@ -6,6 +6,7 @@ class AudioConfig:
     original_sample_rate: int = 48_000
     target_sample_rate: int = 16_000
     target_duration: float = 0.84
+    n_fft: int = 1024
     n_mels: int = 64
 
     @property

@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import optuna
 from matplotlib import pyplot as plt
 
@@ -8,6 +9,17 @@ from src.config import CONFIG
 
 MAC_ENERGY_PJ = 3.7 + 0.9
 AC_ENERGY_PJ = 0.9
+
+
+def get_random_audio(dir: Path) -> Path:
+    digit = np.random.randint(0, 10)
+    speaker = np.random.randint(1, 61)
+    sample = np.random.randint(0, 50)
+
+    if speaker < 10:
+        return dir / f'0{speaker}/{digit}_0{speaker}_{sample}.wav'
+    else:
+        return dir / f'{speaker}/{digit}_{speaker}_{sample}.wav'
 
 
 def run_sweep(objective, output_path: Path) -> None:
@@ -22,6 +34,7 @@ def run_sweep(objective, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, 'w') as f:
         json.dump(study.best_params, f, indent=2)
+
 
 def run_sweep_pareto(objective, output_path: Path) -> None:
     """A special hyperparameter sweep for finding the Pareto front, e.g. maximising SNN accuracy while minimising timesteps."""

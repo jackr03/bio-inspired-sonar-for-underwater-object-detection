@@ -1,5 +1,6 @@
 import torch
 import torchaudio
+from nnAudio.features import Gammatonegram
 from torch import nn, Tensor
 
 from src.config import CONFIG
@@ -48,35 +49,43 @@ def get_waveform_transformer() -> nn.Module:
         DurationNormaliser(target_samples=CONFIG.audio.target_samples),
     )
 
-def get_spectrogram_transformer() -> nn.Module:
+# TODO: Higher bins for Gammatone?
+def get_gammatone_filterbank() -> nn.MOdule:
+    return Gammatonegram(
+        sr=CONFIG.audio.target_sample_rate,
+        n_fft=CONFIG.audio.n_fft,
+        n_bins=CONFIG.audio.n_mels,
+    )
+
+def get_mel_filterbank() -> nn.Module:
+    return torchaudio.transforms.MelSpectrogram(
+        sample_rate=CONFIG.audio.target_sample_rate,
+        n_fft=CONFIG.audio.n_fft,
+        n_mels=CONFIG.audio.n_mels,
+        pad_mode='constant',
+        norm='slaney',
+        mel_scale='slaney'
+    )
+
+def get_spectrogram_transformer(filterbank: str) -> nn.Module:
     """
     A preprocessing pipeline that:
-    1. Converts the waveform to a Mel Spectrogram
+    1. Converts the waveform to a Mel Spectrogram / Gammatone Spectrogram
     2. Performs log-scaling by dB
     """
+    filterbank = get_mel_filterbank() if filterbank == 'mel' else get_gammatone_filterbank()
     return nn.Sequential(
-        torchaudio.transforms.MelSpectrogram(
-            sample_rate=CONFIG.audio.target_sample_rate,
-            n_fft=1024,
-            win_length=1024,
-            hop_length=512,
-            n_mels=CONFIG.audio.n_mels,
-            power=2.0,
-            pad_mode='constant',
-            norm='slaney',
-            mel_scale='slaney'
-        ),
+        filterbank,
         torchaudio.transforms.AmplitudeToDB()
     )
 
-def get_cnn_pipeline() -> nn.Module:
-    """Returns the preprocessing pipeline for CNNs."""
+def get_cnn_pipeline(filterbank: str = 'mel') -> nn.Module:
     return nn.Sequential(
         get_waveform_transformer(),
-        get_spectrogram_transformer(),
+        get_spectrogram_transformer(filterbank),
     )
 
-def get_snn_pipeline() -> nn.Module:
+def get_snn_pipeline(filterbank: str = 'mel') -> nn.Module:
     """
     Returns the preprocessing pipeline for SNNs:
     1. Generates the base spectrogram
@@ -84,6 +93,6 @@ def get_snn_pipeline() -> nn.Module:
     """
     return nn.Sequential(
         get_waveform_transformer(),
-        get_spectrogram_transformer(),
+        get_spectrogram_transformer(filterbank),
         MinMaxScaler()
     )
