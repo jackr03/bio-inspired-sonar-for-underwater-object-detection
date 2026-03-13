@@ -50,7 +50,7 @@ def get_waveform_transformer() -> nn.Module:
     )
 
 # TODO: Higher bins for Gammatone?
-def get_gammatone_filterbank() -> nn.MOdule:
+def get_gammatone_filterbank() -> nn.Module:
     return Gammatonegram(
         sr=CONFIG.audio.target_sample_rate,
         n_fft=CONFIG.audio.n_fft,

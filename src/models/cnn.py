@@ -1,7 +1,7 @@
 from torch import nn, Tensor
 
 
-class CNNConv2dBlock(nn.Module):
+class ConvBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, kernel_size: int):
         super().__init__()
 
@@ -16,17 +16,17 @@ class CNNConv2dBlock(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         return self.block(x)
 
-class CNN2DClassifier(nn.Module):
+class CNN(nn.Module):
 
-    NAME = 'cnn_2d'
+    NAME = 'cnn'
 
     def __init__(self):
         super().__init__()
 
         self.feature_extractor = nn.Sequential(
-            CNNConv2dBlock(in_channels=1, out_channels=8, kernel_size=5),
-            CNNConv2dBlock(in_channels=8, out_channels=16, kernel_size=3),
-            CNNConv2dBlock(in_channels=16, out_channels=32, kernel_size=3),
+            ConvBlock(in_channels=1, out_channels=8, kernel_size=5),
+            ConvBlock(in_channels=8, out_channels=16, kernel_size=3),
+            ConvBlock(in_channels=16, out_channels=32, kernel_size=3),
         )
 
         self.classifier = nn.Sequential(
