@@ -10,6 +10,7 @@ class ConvBlock(nn.Module):
         beta = torch.ones(1, out_channels, 1) * beta_init
 
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size=kernel_size)
+        self.bn = nn.BatchNorm1d(out_channels)
         self.pool = nn.MaxPool1d(kernel_size=2)
         self.lif = snn.Leaky(spike_grad=spike_grad, beta=beta, learn_beta=True)
 
@@ -17,6 +18,7 @@ class ConvBlock(nn.Module):
 
     def forward(self, x: Tensor, mem: Tensor) -> tuple[Tensor, Tensor]:
         x = self.conv(x)
+        x = self.bn(x)
         x = self.pool(x)
         spk, mem = self.lif(x, mem)
 
