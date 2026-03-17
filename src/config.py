@@ -8,6 +8,7 @@ class AudioConfig:
     target_duration: float
     n_fft: int
     n_bins: int
+    delta_threshold: float
 
     @property
     def target_samples(self) -> int:
@@ -29,13 +30,15 @@ class Config:
         target_duration=0.84,
         n_fft=1024,
         n_bins=64,
+        delta_threshold=0.1
     )
     batvision: AudioConfig = AudioConfig(
         original_sample_rate=44_100,
         target_sample_rate=44_100,
         target_duration=0.454,
         n_fft=1024,
-        n_bins=128
+        n_bins=128,
+        delta_threshold=0.1
     )
     hyperparameter_tuning: HyperparameterTuningConfig = HyperparameterTuningConfig()
 
