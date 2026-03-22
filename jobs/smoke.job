@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#SBATCH --partition=gpuL
+#SBATCH --gpus=1
+#SBATCH -c 8
+#SBATCH --ntasks=1
+#SBATCH --time=1-0
+#SBATCH --output=/dev/null
+
+set -euo pipefail
+
+module load apps/binapps/conda/miniforge3/25.9.1
+module load libs/cuda/12.4.1
+
+BASE="/mnt/iusers01/fse-ugpgt01/compsci01/j84846ky/scratch/34812-cwk-S-Project"
+
+RUN_DIR="$BASE/runs/smoke/smoke_$(date +%Y-%m-%d_%H-%M)"
+mkdir -p "$RUN_DIR"
+
+exec > >(tee -a "$RUN_DIR/output.log") 2>&1
+
+echo "Run directory: $RUN_DIR"
+echo "RUN_ID: $SLURM_JOB_ID"
+
+ping -c 4 pypi.org

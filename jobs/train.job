@@ -1,0 +1,37 @@
+#!/bin/bash
+
+#SBATCH --partition=gpuL
+#SBATCH --gpus=1
+#SBATCH -c 8
+#SBATCH --ntasks=1
+#SBATCH --time=1-0
+#SBATCH --output=/dev/null
+
+set -euo pipefail
+
+module load apps/binapps/conda/miniforge3/25.9.1
+module load libs/cuda/12.4.1
+
+BASE="/mnt/iusers01/fse-ugpgt01/compsci01/j84846ky/scratch/34812-cwk-S-Project"
+
+RUN_DIR="$BASE/runs/train_$(date +%Y-%m-%d_%H-%M)"
+mkdir -p "$RUN_DIR/plots"
+
+exec > >(tee -a "$RUN_DIR/output.log") 2>&1
+
+echo "===== Job started at $(date) ====="
+echo "RUN_ID: $SLURM_JOB_ID"
+
+echo "Creating venv in $TMPDIR..."
+python -m venv "$TMPDIR/venv"
+source "$TMPDIR/venv/bin/activate"
+
+echo "Installing requirements..."
+pip install --quiet -r "$BASE/requirements/requirements-hpc.txt"
+echo "Install complete at $(date)"
+
+export PYTHONPATH="$BASE:$PYTHONPATH"
+
+echo "===== Training started at $(date) ====="
+CUDA_VISIBLE_DEVICES=0 python -u -m src.run_train --run-dir "$RUN_DIR"
+echo "===== Training finished at $(date) ====="
