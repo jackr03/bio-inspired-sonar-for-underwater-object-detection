@@ -211,7 +211,6 @@ __marimo__/
 .idea/
 
 # Data and models
-audio-mnist.zip
 data/*
 models/*
 processed/*
