@@ -5,19 +5,15 @@
 #SBATCH -c 8
 #SBATCH --ntasks=1
 #SBATCH --time=1-0
-#SBATCH --output=/dev/null
 
 # Usage: sbatch train.job <model> [extra args...]
 #   sbatch train.job cnn
 #   sbatch train.job snn
 #   sbatch train.job snn_encoded
-#   sbatch train.job cnn --num-epochs 30 --skip-sweep
 
 set -euo pipefail
 
-MODEL="${1:?Usage: sbatch train.job <cnn|snn|snn_encoded> [extra args...]}"
-shift
-EXTRA_ARGS="$*"
+MODEL="${1:?Usage: sbatch train.job <cnn|snn|snn_encoded>}"
 
 module load apps/binapps/conda/miniforge3/25.9.1
 module load libs/cuda/12.4.1
@@ -44,5 +40,5 @@ echo "Install complete at $(date)"
 export PYTHONPATH="$BASE:$PYTHONPATH"
 
 echo "===== Training started at $(date) ====="
-CUDA_VISIBLE_DEVICES=0 python -u -m "src.run_train_${MODEL}" --run-dir "$RUN_DIR" $EXTRA_ARGS
+CUDA_VISIBLE_DEVICES=0 python -u -m "src.run_train_${MODEL}" --run-dir "$RUN_DIR"
 echo "===== Training finished at $(date) ====="

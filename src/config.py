@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
 class AudioConfig:
+    path: Path
     original_sample_rate: int
     target_sample_rate: int
     target_duration: float
@@ -23,9 +25,9 @@ class HyperparameterTuningConfig:
 @dataclass(frozen=True)
 class Config:
     seed: int = 100
-    delta_threshold: float = 0.1
     epochs: int = 50
     audiomnist: AudioConfig = AudioConfig(
+        path=Path(f'data/audio-mnist'),
         original_sample_rate=48_000,
         target_sample_rate=16_000,
         target_duration=0.84,
@@ -34,6 +36,7 @@ class Config:
         delta_threshold=0.1
     )
     oceanship: AudioConfig = AudioConfig(
+        path=Path(f'data/oceanship'),
         original_sample_rate=32_000,
         target_sample_rate=32_000,
         target_duration=5.0,
