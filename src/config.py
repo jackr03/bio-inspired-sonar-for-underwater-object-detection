@@ -32,10 +32,10 @@ class Config:
         n_bins=64,
         delta_threshold=0.1
     )
-    batvision: AudioConfig = AudioConfig(
-        original_sample_rate=44_100,
-        target_sample_rate=44_100,
-        target_duration=0.454,
+    oceanship: AudioConfig = AudioConfig(
+        original_sample_rate=32_000,
+        target_sample_rate=32_000,
+        target_duration=5.0,
         n_fft=1024,
         n_bins=128,
         delta_threshold=0.1
