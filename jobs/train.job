@@ -7,31 +7,42 @@
 #SBATCH --time=1-0
 #SBATCH --output=/dev/null
 
+# Usage: sbatch train.job <model> [extra args...]
+#   sbatch train.job cnn
+#   sbatch train.job snn
+#   sbatch train.job snn_encoded
+#   sbatch train.job cnn --num-epochs 30 --skip-sweep
+
 set -euo pipefail
+
+MODEL="${1:?Usage: sbatch train.job <cnn|snn|snn_encoded> [extra args...]}"
+shift
+EXTRA_ARGS="$*"
 
 module load apps/binapps/conda/miniforge3/25.9.1
 module load libs/cuda/12.4.1
 
-BASE="/mnt/iusers01/fse-ugpgt01/compsci01/j84846ky/scratch/34812-cwk-S-Project"
+BASE="/mnt/iusers01/fse-ugpgt01/compsci01/x06213zr/scratch/bio-inspired-sonar-for-underwater-object-detection"
 
-RUN_DIR="$BASE/runs/train_$(date +%Y-%m-%d_%H-%M)"
+RUN_DIR="$BASE/runs/${MODEL}_$(date +%Y-%m-%d_%H-%M)"
 mkdir -p "$RUN_DIR/plots"
 
 exec > >(tee -a "$RUN_DIR/output.log") 2>&1
 
 echo "===== Job started at $(date) ====="
 echo "RUN_ID: $SLURM_JOB_ID"
+echo "MODEL: $MODEL"
 
 echo "Creating venv in $TMPDIR..."
 python -m venv "$TMPDIR/venv"
 source "$TMPDIR/venv/bin/activate"
 
 echo "Installing requirements..."
-pip install --quiet -r "$BASE/requirements/requirements-hpc.txt"
+pip install --quiet -r "$BASE/requirements/requirements-cuda.txt"
 echo "Install complete at $(date)"
 
 export PYTHONPATH="$BASE:$PYTHONPATH"
 
 echo "===== Training started at $(date) ====="
-CUDA_VISIBLE_DEVICES=0 python -u -m src.run_train --run-dir "$RUN_DIR"
+CUDA_VISIBLE_DEVICES=0 python -u -m "src.run_train_${MODEL}" --run-dir "$RUN_DIR" $EXTRA_ARGS
 echo "===== Training finished at $(date) ====="

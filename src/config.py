@@ -16,7 +16,7 @@ class AudioConfig:
 
 @dataclass(frozen=True)
 class HyperparameterTuningConfig:
-    epochs: int = 3
+    epochs: int = 5
     trials: int = 20
     should_run: bool = True
 
@@ -24,6 +24,7 @@ class HyperparameterTuningConfig:
 class Config:
     seed: int = 100
     delta_threshold: float = 0.1
+    epochs: int = 50
     audiomnist: AudioConfig = AudioConfig(
         original_sample_rate=48_000,
         target_sample_rate=16_000,
