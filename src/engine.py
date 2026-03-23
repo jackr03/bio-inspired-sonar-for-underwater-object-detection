@@ -204,7 +204,7 @@ def benchmark_snn(device, model, test_dataloader, direct_encoded: bool = False, 
     total_macs = _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if direct_encoded else 0
 
     # Divide by number of samples to get the per inference AC
-    avg_acs_per_inference = int(total_acs / len(test_dataloader.dataset))
+    avg_acs_per_inference = int(total_acs / len(test_dataloader))
 
     return accuracy, avg_acs_per_inference, total_macs
 
