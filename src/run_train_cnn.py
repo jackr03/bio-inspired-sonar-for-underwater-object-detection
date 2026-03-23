@@ -1,5 +1,6 @@
 import argparse
 import json
+from time import time
 import warnings
 from pathlib import Path
 
@@ -46,7 +47,7 @@ def main():
     if device.type == 'cuda':
         print(f'GPU: {torch.cuda.get_device_name(0)}')
 
-    pipeline = get_cnn_pipeline(CONFIG.audio_pipeline, filterbank='mel')
+    pipeline = get_cnn_pipeline(CONFIG.audiomnist, filterbank='mel')
 
     # --- Hyperparameter Sweep ---
     if CONFIG.hyperparameter_tuning.should_run:
@@ -55,8 +56,8 @@ def main():
         def objective(trial) -> float:
             lr = trial.suggest_float('lr', 1e-4, 1e-2, log=True)
 
-            dataset = AudioDataset(args.data_dir, pipeline)
-            train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset)
+            dataset = AudioDataset(CONFIG.audiomnist.path, pipeline)
+            train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset, batch_size=256)
 
             model = CNN().to(device)
             optimiser = torch.optim.Adam(model.parameters(), lr=lr)
@@ -64,8 +65,8 @@ def main():
 
             val_acc = 0.0
             for epoch in range(CONFIG.hyperparameter_tuning.epochs):
-                train_one_epoch_cnn(device, model, criterion, optimiser, train_dl, leave=False)
-                _, val_acc = validate_cnn(device, model, criterion, val_dl, leave=False)
+                train_one_epoch_cnn(device, model, criterion, optimiser, train_dataloader, leave=False)
+                _, val_acc = validate_cnn(device, model, criterion, val_dataloader, leave=False)
 
                 trial.report(val_acc, epoch)
                 if trial.should_prune():
@@ -78,8 +79,8 @@ def main():
         print('Skipping hyperparameter sweep.')
 
     # --- Training ---
-    dataset = AudioDataset(args.data_dir, pipeline)
-    train_dl, val_dl, test_dl = get_split_dataloaders(dataset)
+    dataset = AudioDataset(CONFIG.audiomnist.path, pipeline)
+    train_dataloader, val_dataloader, test_dataloader = get_split_dataloaders(dataset)
 
     hyperparameters = json.load(open(hyperparameters_path, 'r'))
     print(f'Hyperparameters: {hyperparameters}')
@@ -93,14 +94,16 @@ def main():
     train_losses, train_accs = [], []
     val_losses, val_accs = [], []
 
-    for epoch in range(args.num_epochs):
-        print(f'[Epoch {epoch + 1}/{args.num_epochs}]')
+    total_start = time.time()
+    for epoch in range(CONFIG.epochs):
+        epoch_start = time.time()
+        print(f'[Epoch {epoch + 1}/{CONFIG.epochs}]')
 
-        train_loss, train_acc = train_one_epoch_cnn(device, model, criterion, optimiser, train_dl)
+        train_loss, train_acc = train_one_epoch_cnn(device, model, criterion, optimiser, train_dataloader)
         train_losses.append(train_loss)
         train_accs.append(train_acc)
 
-        val_loss, val_acc = validate_cnn(device, model, criterion, val_dl)
+        val_loss, val_acc = validate_cnn(device, model, criterion, val_dataloader)
         val_losses.append(val_loss)
         val_accs.append(val_acc)
 
@@ -108,23 +111,32 @@ def main():
             best_acc = val_acc
             torch.save(model.state_dict(), model_path)
 
-        print(f'Train Loss: {train_loss:.2f} | Train Acc: {train_acc:.2f}% | Val Loss: {val_loss:.2f} | Val Acc: {val_acc:.2f}%')
+        epoch_time = time.time() - epoch_start
+        elapsed = time.time() - total_start
 
+        print(
+            f'Train Loss: {train_loss:.2f} | Train Acc: {train_acc:.2f}% | Val Loss: {val_loss:.2f} | Val Acc: {val_acc:.2f}%')
+        print(f'Epoch time: {epoch_time:.1f}s | Total elapsed: {elapsed:.1f}s')
+        print()
+
+    total_time = time.time() - total_start
+    print(f'Training complete in {total_time:.1f}s')
     print(f'Best validation accuracy: {best_acc:.2f}%')
 
     # --- Benchmark ---
     print('Running benchmark on test set...')
     model.load_state_dict(torch.load(model_path))
-    test_accuracy, macs = benchmark_cnn(device, model, test_dl)
+    test_accuracy, macs = benchmark_cnn(device, model, test_dataloader)
     print(f'Test Accuracy: {test_accuracy:.2f}% | Total MACs: {macs}')
 
     # --- Save results ---
     results = {
+        'training_time_seconds': round(total_time, 1),
         'model': model.NAME,
         'test_accuracy': test_accuracy,
         'macs': macs,
         'best_val_accuracy': best_acc,
-        'num_epochs': args.num_epochs,
+        'num_epochs': CONFIG.epochs,
         'hyperparameters': hyperparameters,
         'device': str(device),
         'train_losses': train_losses,
@@ -132,7 +144,7 @@ def main():
         'val_losses': val_losses,
         'val_accs': val_accs,
     }
-    
+
     with open(results_path, 'w') as f:
         json.dump(results, f, indent=2)
     print(f'Results saved to {results_path}')

@@ -29,15 +29,11 @@ echo "===== Job started at $(date) ====="
 echo "RUN_ID: $SLURM_JOB_ID"
 echo "MODEL: $MODEL"
 
-echo "Creating venv in $TMPDIR..."
-python -m venv "$TMPDIR/venv"
-source "$TMPDIR/venv/bin/activate"
-
 echo "Installing requirements..."
+cd $BASE
+python -m venv .venv
+source ./.venv/bin/activate
 pip install --quiet -r "$BASE/requirements/requirements-cuda.txt"
-echo "Install complete at $(date)"
-
-export PYTHONPATH="$BASE:$PYTHONPATH"
 
 echo "===== Training started at $(date) ====="
 CUDA_VISIBLE_DEVICES=0 python -u -m "src.run_train_${MODEL}" --run-dir "$RUN_DIR"

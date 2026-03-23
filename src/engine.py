@@ -31,7 +31,8 @@ def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader, l
     total_loss = 0.0
     correct = 0
     total = 0
-    for inputs, labels in tqdm(train_dataloader, desc='Training', unit='batches', leave=leave):
+    # for inputs, labels in tqdm(train_dataloader, desc='Training', unit='batches', leave=leave):
+    for inputs, labels in train_dataloader:
         inputs = inputs.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
 
@@ -59,7 +60,8 @@ def validate_cnn(device, model, criterion, val_dataloader, leave: bool = True) -
     correct = 0
     total = 0
     with torch.inference_mode():
-        for inputs, labels in tqdm(val_dataloader, desc='Validating', unit='batches', leave=leave):
+        # for inputs, labels in tqdm(val_dataloader, desc='Validating', unit='batches', leave=leave):
+        for inputs, labels in val_dataloader:
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 
