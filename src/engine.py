@@ -1,28 +1,10 @@
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split
 from torchinfo import summary
 from tqdm.auto import tqdm
 
 from src.config import CONFIG
 from src.snn_ac_monitor import SNNACMonitor
-
-
-def get_split_dataloaders(dataset: Dataset) -> tuple[DataLoader, DataLoader, DataLoader]:
-    """Returns an 80/10/10 split of DataLoaders from the given dataset."""
-    train_size = int(0.8 * len(dataset))
-    val_size = int(0.1 * len(dataset))
-    test_size = len(dataset) - train_size - val_size
-
-    train_dataset, val_dataset, test_dataset = random_split(
-        dataset, [train_size, val_size, test_size],
-        generator=torch.Generator().manual_seed(CONFIG.seed)
-    )
-
-    train_dataloader = DataLoader(train_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True, shuffle=True, drop_last=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
-
-    return train_dataloader, val_dataloader, test_dataloader
+from src.types.model_type import ModelType
 
 
 def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
@@ -56,6 +38,7 @@ def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -
 
     return avg_loss, avg_accuracy
 
+
 def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float]:
     model.eval()
 
@@ -83,7 +66,9 @@ def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float
 
     return avg_loss, avg_accuracy
 
-def benchmark_cnn(device, model, test_dataloader) -> tuple[float, int]:
+
+def benchmark_cnn(device, model, test_dataloader) -> tuple[float, int, int]:
+    """Returns a tuple of (accuracy, macs, acs)."""
     model.eval()
 
     sample_input, _ = next(iter(test_dataloader))
@@ -109,7 +94,8 @@ def benchmark_cnn(device, model, test_dataloader) -> tuple[float, int]:
             total += labels.size(0)
 
     accuracy = 100 * correct / total
-    return accuracy, macs
+    return accuracy, macs, 0
+
 
 def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
     model.train()
@@ -143,6 +129,7 @@ def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -
 
     return avg_loss, avg_accuracy
 
+
 def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float]:
     model.eval()
 
@@ -172,8 +159,8 @@ def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float
     return avg_loss, avg_accuracy
 
 
-def benchmark_snn(device, model, test_dataloader, direct_encoded: bool = False, leave: bool = True) -> tuple[float, int, int]:
-    """Returns a tuple of (accuracy, avg_acs, first_layer_macs)."""
+def benchmark_snn(device, model, test_dataloader) -> tuple[float, int, int]:
+    """Returns a tuple of (accuracy, first_layer_macs, avg_acs)."""
     model.eval()
 
     snn_ac_monitor = SNNACMonitor(model)
@@ -200,13 +187,16 @@ def benchmark_snn(device, model, test_dataloader, direct_encoded: bool = False, 
     snn_ac_monitor.remove()
 
     accuracy = 100 * correct / total
+
+    # Calculate MACs if direct encoded, skip otherwise
+    total_macs = _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if model.name == ModelType.SNN_DIRECT else 0
     total_acs = snn_ac_monitor.get_total_acs()
-    total_macs = _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if direct_encoded else 0
 
     # Divide by number of samples to get the per inference AC
-    avg_acs_per_inference = int(total_acs / len(test_dataloader))
+    avg_acs_per_inference = int(total_acs / total)
 
-    return accuracy, avg_acs_per_inference, total_macs
+    return accuracy, total_macs, avg_acs_per_inference
+
 
 def _calculate_conv2d_macs(model, sample_input: torch.Tensor) -> int:
     """

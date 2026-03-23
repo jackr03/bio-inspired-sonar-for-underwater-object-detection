@@ -1,48 +1,7 @@
-import json
-from pathlib import Path
-
-import optuna
 from matplotlib import pyplot as plt
-
-from src.config import CONFIG
 
 MAC_ENERGY_PJ = 3.7 + 0.9
 AC_ENERGY_PJ = 0.9
-
-
-def run_sweep(objective, output_path: Path) -> None:
-    print('Running hyperparameter sweep...')
-    study = optuna.create_study(direction='maximize', pruner=optuna.pruners.MedianPruner())
-    study.optimize(objective, n_trials=CONFIG.hyperparameter_tuning.trials)
-
-    print('Hyperparameter sweep completed.')
-    print(f'Accuracy: {study.best_value:.2f}%')
-    print(f'Parameters: {study.best_params}')
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, 'w') as f:
-        json.dump(study.best_params, f, indent=2)
-
-
-def run_sweep_pareto(objective, output_path: Path) -> None:
-    """A special hyperparameter sweep for finding the Pareto front, e.g. maximising SNN accuracy while minimising timesteps."""
-    print('Running hyperparameter sweep (Pareto front)...')
-    study = optuna.create_study(directions=['maximize', 'minimize'])
-    study.optimize(objective, n_trials=CONFIG.hyperparameter_tuning.trials)
-
-    print('Pareto front hyperparameter sweep completed.')
-    pareto_results = []
-    for trial in study.best_trials:
-        pareto_results.append({
-            'accuracy': trial.values[0],
-            'timesteps': trial.values[1],
-            'params': trial.params
-        })
-    pareto_results.sort(key=lambda x: x['accuracy'], reverse=True)
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, 'w') as f:
-        json.dump(pareto_results, f, indent=2)
 
 
 def plot_training_history(train_losses: list[float], train_accs: list[float], val_losses: list[float], val_accs: list[float]) -> None:
@@ -83,8 +42,8 @@ def plot_accuracy_comparison(ax, model1_name: str, model1_acc: float, model2_nam
 
 
 def plot_energy_comparison(ax, model1_name: str, model1_macs: int, model1_acs: int, model2_name: str, model2_macs: int, model2_acs: int) -> None:
-    energy1 = estimate_energy(model1_macs, model1_acs)
-    energy2 = estimate_energy(model2_macs, model2_acs)
+    energy1 = _estimate_energy(model1_macs, model1_acs)
+    energy2 = _estimate_energy(model2_macs, model2_acs)
 
     models = [model1_name, model2_name]
     mac_energies = [energy1['mac_uJ'], energy2['mac_uJ']]
@@ -102,11 +61,11 @@ def plot_energy_comparison(ax, model1_name: str, model1_macs: int, model1_acs: i
     ax.legend()
 
 
-def estimate_energy(macs: int, acs: int) -> dict:
+def _estimate_energy(macs: int, acs: int) -> dict:
     """Given MACs and ACs, estimate energy usage in uJ."""
     mac_energy = macs * MAC_ENERGY_PJ * 1e-6
     ac_energy = acs * AC_ENERGY_PJ * 1e-6
-    total = mac_energy + ac_energy * 1e-6
+    total = mac_energy + ac_energy
     return {
         'mac_uJ': mac_energy,
         'ac_uJ': ac_energy,

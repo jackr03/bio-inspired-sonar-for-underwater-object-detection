@@ -3,6 +3,8 @@ import torch
 from snntorch import surrogate
 from torch import nn, Tensor
 
+from src.types.model_type import ModelType
+
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, kernel_size: int, beta_init: float, spike_grad):
@@ -29,9 +31,6 @@ class ConvBlock(nn.Module):
         return self.lif.init_leaky()
 
 class SNNDirect(nn.Module):
-
-    NAME = 'snn_direct'
-
     def __init__(self, beta_init: float, slope: int, timesteps: int):
         super().__init__()
 
@@ -69,3 +68,7 @@ class SNNDirect(nn.Module):
             spk_rec.append(spk_out)
 
         return torch.stack(spk_rec, dim=0)
+
+    @property
+    def name(self) -> ModelType:
+        return ModelType.SNN_DIRECT

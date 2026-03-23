@@ -4,6 +4,7 @@ from nnAudio.features import Gammatonegram
 from torch import nn, Tensor
 
 from src.config import AudioConfig
+from src.types.filterbank_type import FilterbankType
 
 
 class DurationNormaliser(nn.Module):
@@ -24,6 +25,7 @@ class DurationNormaliser(nn.Module):
 
         return x
 
+
 class MinMaxScaler(nn.Module):
     """Clamps decibel values between the max and min values provided before normalising to return a value in [0, 1]."""
     def __init__(self, min_val=-80.0, max_val=0.0):
@@ -34,6 +36,28 @@ class MinMaxScaler(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         x = torch.clamp(x, self.min_val, self.max_val)
         return (x - self.min_val) / (self.max_val - self.min_val)
+
+
+def get_filterbank(config: AudioConfig, filterbank_type: FilterbankType, ) -> nn.Module:
+    match filterbank_type:
+        case FilterbankType.MEL:
+            return torchaudio.transforms.MelSpectrogram(
+                sample_rate=config.target_sample_rate,
+                n_fft=config.n_fft,
+                n_mels=config.n_bins,
+                pad_mode='constant',
+                norm='slaney',
+                mel_scale='slaney'
+            )
+        case FilterbankType.GAMMATONE:
+            return Gammatonegram(
+                sr=config.target_sample_rate,
+                n_fft=config.n_fft,
+                n_bins=config.n_bins,
+            )
+        case _:
+            raise NotImplementedError
+
 
 def get_waveform_transformer(config: AudioConfig) -> nn.Module:
     """
@@ -49,27 +73,8 @@ def get_waveform_transformer(config: AudioConfig) -> nn.Module:
         DurationNormaliser(target_samples=config.target_samples),
     )
 
-def get_filterbank(config: AudioConfig, filterbank: str) -> nn.Module:
-    match filterbank:
-        case 'mel':
-            return torchaudio.transforms.MelSpectrogram(
-                sample_rate=config.target_sample_rate,
-                n_fft=config.n_fft,
-                n_mels=config.n_bins,
-                pad_mode='constant',
-                norm='slaney',
-                mel_scale='slaney'
-            )
-        case 'gammatone':
-            return Gammatonegram(
-                sr=config.target_sample_rate,
-                n_fft=config.n_fft,
-                n_bins=config.n_bins,
-            )
-        case _:
-            raise NotImplementedError
 
-def get_spectrogram_transformer(config: AudioConfig, filterbank: str) -> nn.Module:
+def get_spectrogram_transformer(config: AudioConfig, filterbank: FilterbankType) -> nn.Module:
     """
     A preprocessing pipeline that:
     1. Converts the waveform to a Mel Spectrogram / Gammatone Spectrogram
@@ -80,13 +85,15 @@ def get_spectrogram_transformer(config: AudioConfig, filterbank: str) -> nn.Modu
         torchaudio.transforms.AmplitudeToDB()
     )
 
-def get_cnn_pipeline(config: AudioConfig, filterbank: str = 'mel') -> nn.Module:
+
+def get_cnn_pipeline(config: AudioConfig, filterbank: FilterbankType) -> nn.Module:
     return nn.Sequential(
         get_waveform_transformer(config),
         get_spectrogram_transformer(config, filterbank),
     )
 
-def get_snn_pipeline(config: AudioConfig, filterbank: str = 'mel') -> nn.Module:
+
+def get_snn_pipeline(config: AudioConfig, filterbank: FilterbankType) -> nn.Module:
     """
     Returns the preprocessing pipeline for SNNs:
     1. Generates the base spectrogram

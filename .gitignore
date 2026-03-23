@@ -210,12 +210,10 @@ __marimo__/
 .DS_Store
 .idea/
 
-# Data and models
+# Data
 data/*
-models/*
 processed/*
 
 # Track just the folders
 !data/.gitkeep
-!models/.gitkeep
 !processed/.gitkeep

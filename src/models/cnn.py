@@ -1,5 +1,7 @@
 from torch import nn, Tensor
 
+from src.types.model_type import ModelType
+
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, kernel_size: int):
@@ -17,9 +19,6 @@ class ConvBlock(nn.Module):
         return self.block(x)
 
 class CNN(nn.Module):
-
-    NAME = 'cnn'
-
     def __init__(self):
         super().__init__()
 
@@ -37,3 +36,7 @@ class CNN(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         x = self.feature_extractor(x)
         return self.classifier(x)
+
+    @property
+    def name(self) -> ModelType:
+        return ModelType.CNN
