@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#SBATCH -c 8
+#SBATCH --ntasks=1
+#SBATCH --time=1-0
+
+# Usage: sbatch process.job
+set -euo pipefail
+
+module load apps/binapps/conda/miniforge3/25.9.1
+
+BASE="/mnt/iusers01/fse-ugpgt01/compsci01/x06213zr/scratch/bio-inspired-sonar-for-underwater-object-detection"
+
+echo "===== Job started at $(date) ====="
+echo "RUN_ID: $SLURM_JOB_ID"
+
+echo "Installing requirements..."
+cd $BASE
+python -m venv .venv
+source ./.venv/bin/activate
+pip install --quiet -r "$BASE/requirements/requirements-cuda.txt"
+
+echo "===== Processing started at $(date) ====="
+papermill notebooks/phase2/audiomnist_encoding.ipynb /dev/null --cwd .
+
+echo "===== Processing finished at $(date) ====="
