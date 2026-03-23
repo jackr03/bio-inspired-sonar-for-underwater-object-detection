@@ -1,6 +1,6 @@
 import argparse
 import json
-from time import time
+import time
 import warnings
 from pathlib import Path
 
@@ -9,6 +9,7 @@ import optuna
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
+from sympy import false
 
 from src.config import CONFIG
 from src.datasets.audio_dataset import AudioDataset
@@ -35,6 +36,8 @@ def main():
     hyperparameters_path = run_dir / f'hyperparameters.json'
     model_path = run_dir / f'model.pth'
     results_path = run_dir / 'results.json'
+
+    CONFIG.show_progress = false
 
     # Device
     device = torch.device(

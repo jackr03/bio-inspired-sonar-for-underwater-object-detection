@@ -7,7 +7,7 @@ from src.config import CONFIG
 from src.snn_ac_monitor import SNNACMonitor
 
 
-def get_split_dataloaders(dataset: Dataset, seed: int = CONFIG.seed, batch_size: int = 64) -> tuple[DataLoader, DataLoader, DataLoader]:
+def get_split_dataloaders(dataset: Dataset) -> tuple[DataLoader, DataLoader, DataLoader]:
     """Returns an 80/10/10 split of DataLoaders from the given dataset."""
     train_size = int(0.8 * len(dataset))
     val_size = int(0.1 * len(dataset))
@@ -15,23 +15,26 @@ def get_split_dataloaders(dataset: Dataset, seed: int = CONFIG.seed, batch_size:
 
     train_dataset, val_dataset, test_dataset = random_split(
         dataset, [train_size, val_size, test_size],
-        generator=torch.Generator().manual_seed(seed)
+        generator=torch.Generator().manual_seed(CONFIG.seed)
     )
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=4, persistent_workers=True, pin_memory=True, shuffle=True, drop_last=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True, shuffle=True, drop_last=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
 
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader, leave: bool = True) -> tuple[float, float]:
+def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
     model.train()
 
     total_loss = 0.0
     correct = 0
     total = 0
-    # for inputs, labels in tqdm(train_dataloader, desc='Training', unit='batches', leave=leave):
+
+    if CONFIG.show_progress:
+        train_dataloader = tqdm(train_dataloader, desc='Training', unit='batches')
+
     for inputs, labels in train_dataloader:
         inputs = inputs.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
@@ -53,14 +56,17 @@ def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader, l
 
     return avg_loss, avg_accuracy
 
-def validate_cnn(device, model, criterion, val_dataloader, leave: bool = True) -> tuple[float, float]:
+def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float]:
     model.eval()
 
     total_loss = 0.0
     correct = 0
     total = 0
+
+    if CONFIG.show_progress:
+        val_dataloader = tqdm(val_dataloader, desc='Validating', unit='batches')
+
     with torch.inference_mode():
-        # for inputs, labels in tqdm(val_dataloader, desc='Validating', unit='batches', leave=leave):
         for inputs, labels in val_dataloader:
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
@@ -77,7 +83,7 @@ def validate_cnn(device, model, criterion, val_dataloader, leave: bool = True) -
 
     return avg_loss, avg_accuracy
 
-def benchmark_cnn(device, model, test_dataloader, leave: bool = True) -> tuple[float, int]:
+def benchmark_cnn(device, model, test_dataloader) -> tuple[float, int]:
     model.eval()
 
     sample_input, _ = next(iter(test_dataloader))
@@ -87,8 +93,12 @@ def benchmark_cnn(device, model, test_dataloader, leave: bool = True) -> tuple[f
 
     correct = 0
     total = 0
+
+    if CONFIG.show_progress:
+        test_dataloader = tqdm(test_dataloader, desc='Testing', unit='batches')
+
     with torch.inference_mode():
-        for inputs, labels in tqdm(test_dataloader, desc='Benchmarking', unit='batches', leave=leave):
+        for inputs, labels in test_dataloader:
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 
@@ -101,13 +111,17 @@ def benchmark_cnn(device, model, test_dataloader, leave: bool = True) -> tuple[f
     accuracy = 100 * correct / total
     return accuracy, macs
 
-def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader, leave: bool = True) -> tuple[float, float]:
+def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
     model.train()
 
     total_loss = 0.0
     correct = 0
     total = 0
-    for inputs, labels in tqdm(train_dataloader, desc='Training', unit='batches', leave=leave):
+
+    if CONFIG.show_progress:
+        train_dataloader = tqdm(train_dataloader, desc='Training', unit='batches')
+
+    for inputs, labels in train_dataloader:
         inputs = inputs.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
 
@@ -129,14 +143,18 @@ def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader, l
 
     return avg_loss, avg_accuracy
 
-def validate_snn(device, model, criterion, val_dataloader, leave: bool = True) -> tuple[float, float]:
+def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float]:
     model.eval()
 
     total_loss = 0.0
     correct = 0
     total = 0
+
+    if CONFIG.show_progress:
+        val_dataloader = tqdm(val_dataloader, desc='Validation', unit='batches')
+
     with torch.inference_mode():
-        for inputs, labels in tqdm(val_dataloader, desc='Validating', unit='batches', leave=leave):
+        for inputs, labels in val_dataloader:
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 
@@ -163,8 +181,12 @@ def benchmark_snn(device, model, test_dataloader, direct_encoded: bool = False, 
 
     correct = 0
     total = 0
+
+    if CONFIG.show_progress:
+        test_dataloader = tqdm(test_dataloader, desc='Testing', unit='batches')
+
     with torch.inference_mode():
-        for inputs, labels in tqdm(test_dataloader, desc='Benchmarking', unit='batches', leave=leave):
+        for inputs, labels in test_dataloader:
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 

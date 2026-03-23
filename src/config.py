@@ -18,14 +18,16 @@ class AudioConfig:
 
 @dataclass(frozen=True)
 class HyperparameterTuningConfig:
+    should_run: bool = True
     epochs: int = 5
     trials: int = 20
-    should_run: bool = True
 
 @dataclass(frozen=True)
 class Config:
     seed: int = 100
     epochs: int = 50
+    batch_size: int = 256
+    show_progress: bool = True
     audiomnist: AudioConfig = AudioConfig(
         path=Path(f'data/audio-mnist'),
         original_sample_rate=48_000,

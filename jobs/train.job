@@ -6,11 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --time=1-0
 
-# Usage: sbatch train.job <model> [extra args...]
-#   sbatch train.job cnn
-#   sbatch train.job snn
-#   sbatch train.job snn_encoded
-
+# Usage: sbatch train.job <model>
 set -euo pipefail
 
 MODEL="${1:?Usage: sbatch train.job <cnn|snn|snn_encoded>}"

@@ -30,8 +30,7 @@ def run_sweep_pareto(objective, output_path: Path) -> None:
     study = optuna.create_study(directions=['maximize', 'minimize'])
     study.optimize(objective, n_trials=CONFIG.hyperparameter_tuning.trials)
 
-    print('[REMEMBER TO MANUALLY SELECT BEST SET OF HYPERPARAMETERS]')
-    print('Hyperparameter sweep completed.')
+    print('Pareto front hyperparameter sweep completed.')
     pareto_results = []
     for trial in study.best_trials:
         pareto_results.append({
