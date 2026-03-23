@@ -56,7 +56,6 @@ cover/
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -216,4 +215,7 @@ processed/*
 
 # Track just the folders
 !data/.gitkeep
-!processed/.gitkeep
+!processed/.
+
+# Runs
+runs/smoke
