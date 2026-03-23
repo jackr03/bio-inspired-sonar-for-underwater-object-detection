@@ -19,7 +19,6 @@ module load libs/cuda/12.4.1
 BASE="/mnt/iusers01/fse-ugpgt01/compsci01/x06213zr/scratch/bio-inspired-sonar-for-underwater-object-detection"
 
 RUN_DIR="$BASE/runs/${MODEL}-${DATASET}-${FILTERBANK}_$(date +%Y-%m-%d_%H-%M)"
-mkdir -p "$RUN_DIR/plots"
 
 exec > >(tee -a "$RUN_DIR/output.log") 2>&1
 

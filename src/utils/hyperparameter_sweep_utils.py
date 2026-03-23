@@ -28,11 +28,12 @@ def run_hyperparameter_sweep(device, model_type: ModelType, dataset_type: Datase
         val_acc = 0.0
         for epoch in range(CONFIG.hyperparameter_tuning.epochs):
             components['train_fn'](device, model, criterion, optimizer, train_dataloader)
-            val_loss, val_acc = components['val_fn'](device, model, criterion, val_dataloader)
+            _, val_acc = components['val_fn'](device, model, criterion, val_dataloader)
 
-            trial.report(val_acc, epoch)
-            if trial.should_prune():
-                raise optuna.TrialPruned()
+            if model_type != ModelType.SNN_DIRECT:
+                trial.report(val_acc, epoch)
+                if trial.should_prune():
+                    raise optuna.TrialPruned()
 
         match model_type:
             case ModelType.CNN | ModelType.SNN:

@@ -73,7 +73,7 @@ def benchmark_cnn(device, model, test_dataloader) -> tuple[float, int, int]:
 
     sample_input, _ = next(iter(test_dataloader))
     input_size = (1, *sample_input.shape[1:])
-    model_stats = summary(model, input_size, device=device)
+    model_stats = summary(model, input_size, device=device, verbose=0)
     macs = model_stats.total_mult_adds
 
     correct = 0
