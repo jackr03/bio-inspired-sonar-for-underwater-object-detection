@@ -203,7 +203,7 @@ def _calculate_conv2d_macs(model, sample_input: torch.Tensor) -> int:
     Calculates the MACs for a Conv2d across all timesteps.
     For use with an SNN using direct coding, as the first layer receives continuous values and not spikes, which we need to account for.
     """
-    conv2d = model.block1.conv
+    conv2d = model.blocks[0].conv1
     h_in, w_in = sample_input.shape[2], sample_input.shape[3]
     h_k, w_k = conv2d.kernel_size
     h_s, w_s = conv2d.stride
