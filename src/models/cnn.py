@@ -3,33 +3,38 @@ from torch import nn, Tensor
 from src.types.model_type import ModelType
 
 
-class ConvBlock(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int):
+class VGGBlock(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
 
         self.block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size),
-            nn.BatchNorm2d(out_channels),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2)
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.ReLU()
         )
-        nn.init.kaiming_normal_(self.block[0].weight, nonlinearity='relu')
+        self.pool = nn.MaxPool2d(kernel_size=2)
 
     def forward(self, x: Tensor) -> Tensor:
-        return self.block(x)
+        x = self.block(x)
+        return self.pool(x)
 
+
+# TODO: Move out
 class CNN(nn.Module):
-    def __init__(self, num_classes: int):
+    def __init__(self, in_channels: int = 1, num_classes: int = 10, channels: list[int] = [8, 16]):
         super().__init__()
 
-        self.feature_extractor = nn.Sequential(
-            ConvBlock(in_channels=1, out_channels=8, kernel_size=5),
-            ConvBlock(in_channels=8, out_channels=16, kernel_size=3),
-            ConvBlock(in_channels=16, out_channels=32, kernel_size=3),
-        )
+        vgg_blocks = []
+        for out_channels in channels:
+            vgg_blocks.append(VGGBlock(in_channels, out_channels))
+            in_channels = out_channels
+
+        self.feature_extractor = nn.Sequential(*vgg_blocks)
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
+            nn.Dropout(0.3),
             nn.LazyLinear(out_features=num_classes)
         )
 

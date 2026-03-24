@@ -10,23 +10,17 @@ class VGGBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, beta_init: float, spike_grad):
         super().__init__()
 
-        beta1 = torch.ones(1, out_channels, 1) * beta_init
-        beta2 = torch.ones(1, out_channels, 1) * beta_init
-
+        beta = torch.ones(1, out_channels, 1) * beta_init
         self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm1d(out_channels)
-        self.lif1 = snn.Leaky(spike_grad=spike_grad, beta=beta1, learn_beta=True)
+        self.lif1 = snn.Leaky(spike_grad=spike_grad, beta=beta, learn_beta=True)
         self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm1d(out_channels)
-        self.lif2 = snn.Leaky(spike_grad=spike_grad, beta=beta2, learn_beta=True)
+        self.lif2 = snn.Leaky(spike_grad=spike_grad, beta=beta, learn_beta=True)
         self.pool = nn.MaxPool1d(kernel_size=2)
 
     def forward(self, x: Tensor, mem1: Tensor, mem2: Tensor) -> tuple[Tensor, Tensor, Tensor]:
         x = self.conv1(x)
-        x = self.bn1(x)
         spk, mem1 = self.lif1(x, mem1)
         x = self.conv2(spk)
-        x = self.bn2(x)
         spk, mem2 = self.lif2(x, mem2)
         return self.pool(spk), mem1, mem2
 
@@ -34,7 +28,7 @@ class VGGBlock(nn.Module):
         return self.lif1.init_leaky(), self.lif2.init_leaky()
 
 class SNN(nn.Module):
-    def __init__(self, beta_init: float, slope: int, num_classes: int = 10, in_channels: int = 2, channels: list[int] = [16, 32]):
+    def __init__(self, beta_init: float, slope: int, in_channels: int = 2, num_classes: int = 10, channels: list[int] = [8, 16]):
         super().__init__()
 
         spike_grad = surrogate.fast_sigmoid(slope)
@@ -46,6 +40,7 @@ class SNN(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
+            nn.Dropout(0.3),
             nn.LazyLinear(out_features=num_classes)
         )
 
@@ -53,7 +48,6 @@ class SNN(nn.Module):
         self.lif_out = snn.Leaky(spike_grad=spike_grad, beta=beta_out, learn_beta=True, output=True)
 
     def forward(self, x: Tensor) -> Tensor:
-        # Expected shape of tensor is [Batch, Channel, Time, Mel Bins]
         block_mems = [block.init_leaky() for block in self.blocks]
         mem_out = self.lif_out.init_leaky()
 
