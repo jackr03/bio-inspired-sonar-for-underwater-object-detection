@@ -1,0 +1,150 @@
+===== Job started at Tue 24 Mar 20:40:03 GMT 2026 =====
+RUN_ID: 12596890
+MODEL: cnn | DATASET: audiomnist | FILTERBANK: mel
+Installing requirements...
+
+[notice] A new release of pip is available: 25.0.1 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
+===== Training started at Tue 24 Mar 20:40:15 GMT 2026 =====
+Using device: cuda
+GPU: NVIDIA L40S
+Running hyperparameter sweep...
+[I 2026-03-24 20:41:18,095] A new study created in memory with name: no-name-fa9c3e3e-b3f1-4444-8d2b-6cc276b4cf19
+[I 2026-03-24 20:59:23,716] Trial 0 finished with value: 98.06666666666666 and parameters: {'lr': 0.005600225771084088}. Best is trial 0 with value: 98.06666666666666.
+[I 2026-03-24 21:00:16,050] Trial 1 finished with value: 99.16666666666667 and parameters: {'lr': 0.0010336381744025232}. Best is trial 1 with value: 99.16666666666667.
+[I 2026-03-24 21:01:08,422] Trial 2 finished with value: 97.06666666666666 and parameters: {'lr': 0.00011493185922870383}. Best is trial 1 with value: 99.16666666666667.
+[I 2026-03-24 21:02:01,421] Trial 3 finished with value: 98.2 and parameters: {'lr': 0.00526857861662311}. Best is trial 1 with value: 99.16666666666667.
+[I 2026-03-24 21:02:55,080] Trial 4 finished with value: 98.66666666666667 and parameters: {'lr': 0.0003217479661395601}. Best is trial 1 with value: 99.16666666666667.
+[I 2026-03-24 21:03:44,688] Trial 5 pruned. 
+[I 2026-03-24 21:04:27,749] Trial 6 pruned. 
+[I 2026-03-24 21:05:11,233] Trial 7 pruned. 
+[I 2026-03-24 21:05:55,392] Trial 8 finished with value: 99.16666666666667 and parameters: {'lr': 0.0006094966407944783}. Best is trial 1 with value: 99.16666666666667.
+[I 2026-03-24 21:06:37,978] Trial 9 pruned. 
+[I 2026-03-24 21:07:23,019] Trial 10 finished with value: 99.43333333333334 and parameters: {'lr': 0.0016940796426501456}. Best is trial 10 with value: 99.43333333333334.
+[I 2026-03-24 21:08:07,068] Trial 11 finished with value: 99.33333333333333 and parameters: {'lr': 0.0017678328431018277}. Best is trial 10 with value: 99.43333333333334.
+[I 2026-03-24 21:08:50,666] Trial 12 finished with value: 99.06666666666666 and parameters: {'lr': 0.001924607989708314}. Best is trial 10 with value: 99.43333333333334.
+[I 2026-03-24 21:09:33,950] Trial 13 finished with value: 99.43333333333334 and parameters: {'lr': 0.0023177872870959806}. Best is trial 10 with value: 99.43333333333334.
+[I 2026-03-24 21:10:17,920] Trial 14 finished with value: 99.46666666666667 and parameters: {'lr': 0.0020015877925422124}. Best is trial 14 with value: 99.46666666666667.
+[I 2026-03-24 21:11:00,688] Trial 15 pruned. 
+[I 2026-03-24 21:11:43,556] Trial 16 pruned. 
+[I 2026-03-24 21:12:25,830] Trial 17 pruned. 
+[I 2026-03-24 21:13:09,388] Trial 18 finished with value: 99.16666666666667 and parameters: {'lr': 0.0032947036181182232}. Best is trial 14 with value: 99.46666666666667.
+[I 2026-03-24 21:13:52,749] Trial 19 finished with value: 99.36666666666666 and parameters: {'lr': 0.001355799323785213}. Best is trial 14 with value: 99.46666666666667.
+Hyperparameter sweep completed.
+Accuracy: 99.47%
+Parameters: {'lr': 0.0020015877925422124}
+Hyperparameters used: {'lr': 0.0020015877925422124, 'model_init': {}}
+
+Training CNN...
+[Epoch 1/50]
+Train Loss: 0.55 | Train Accuracy: 83.01% | Val Loss: 0.11 | Val Accuracy: 96.27%
+Epoch Duration: 1s | Total Time Elapsed: 1s
+
+[Epoch 2/50]
+Train Loss: 0.09 | Train Accuracy: 97.21% | Val Loss: 0.05 | Val Accuracy: 98.73%
+Epoch Duration: 0s | Total Time Elapsed: 1s
+
+[Epoch 3/50]
+Train Loss: 0.05 | Train Accuracy: 98.50% | Val Loss: 0.03 | Val Accuracy: 99.33%
+Epoch Duration: 0s | Total Time Elapsed: 1s
+
+[Epoch 4/50]
+Train Loss: 0.04 | Train Accuracy: 98.80% | Val Loss: 0.02 | Val Accuracy: 99.43%
+Epoch Duration: 0s | Total Time Elapsed: 1s
+
+[Epoch 5/50]
+Train Loss: 0.03 | Train Accuracy: 99.04% | Val Loss: 0.02 | Val Accuracy: 99.40%
+Epoch Duration: 0s | Total Time Elapsed: 1s
+
+[Epoch 6/50]
+Train Loss: 0.03 | Train Accuracy: 99.20% | Val Loss: 0.02 | Val Accuracy: 99.47%
+Epoch Duration: 0s | Total Time Elapsed: 2s
+
+[Epoch 7/50]
+Train Loss: 0.02 | Train Accuracy: 99.48% | Val Loss: 0.01 | Val Accuracy: 99.60%
+Epoch Duration: 0s | Total Time Elapsed: 2s
+
+[Epoch 8/50]
+Train Loss: 0.02 | Train Accuracy: 99.48% | Val Loss: 0.02 | Val Accuracy: 99.53%
+Epoch Duration: 0s | Total Time Elapsed: 2s
+
+[Epoch 9/50]
+Train Loss: 0.02 | Train Accuracy: 99.46% | Val Loss: 0.02 | Val Accuracy: 99.33%
+Epoch Duration: 0s | Total Time Elapsed: 2s
+
+[Epoch 10/50]
+Train Loss: 0.02 | Train Accuracy: 99.48% | Val Loss: 0.01 | Val Accuracy: 99.60%
+Epoch Duration: 0s | Total Time Elapsed: 2s
+
+[Epoch 11/50]
+Train Loss: 0.01 | Train Accuracy: 99.58% | Val Loss: 0.01 | Val Accuracy: 99.57%
+Epoch Duration: 0s | Total Time Elapsed: 3s
+
+[Epoch 12/50]
+Train Loss: 0.01 | Train Accuracy: 99.67% | Val Loss: 0.01 | Val Accuracy: 99.63%
+Epoch Duration: 0s | Total Time Elapsed: 3s
+
+[Epoch 13/50]
+Train Loss: 0.01 | Train Accuracy: 99.57% | Val Loss: 0.01 | Val Accuracy: 99.70%
+Epoch Duration: 0s | Total Time Elapsed: 3s
+
+[Epoch 14/50]
+Train Loss: 0.01 | Train Accuracy: 99.62% | Val Loss: 0.01 | Val Accuracy: 99.60%
+Epoch Duration: 0s | Total Time Elapsed: 3s
+
+[Epoch 15/50]
+Train Loss: 0.01 | Train Accuracy: 99.71% | Val Loss: 0.02 | Val Accuracy: 99.47%
+Epoch Duration: 0s | Total Time Elapsed: 3s
+
+[Epoch 16/50]
+Train Loss: 0.01 | Train Accuracy: 99.67% | Val Loss: 0.01 | Val Accuracy: 99.40%
+Epoch Duration: 0s | Total Time Elapsed: 4s
+
+[Epoch 17/50]
+Train Loss: 0.01 | Train Accuracy: 99.66% | Val Loss: 0.01 | Val Accuracy: 99.73%
+Epoch Duration: 0s | Total Time Elapsed: 4s
+
+[Epoch 18/50]
+Train Loss: 0.01 | Train Accuracy: 99.68% | Val Loss: 0.01 | Val Accuracy: 99.50%
+Epoch Duration: 0s | Total Time Elapsed: 4s
+
+[Epoch 19/50]
+Train Loss: 0.01 | Train Accuracy: 99.74% | Val Loss: 0.01 | Val Accuracy: 99.67%
+Epoch Duration: 0s | Total Time Elapsed: 4s
+
+[Epoch 20/50]
+Train Loss: 0.00 | Train Accuracy: 99.84% | Val Loss: 0.01 | Val Accuracy: 99.63%
+Epoch Duration: 0s | Total Time Elapsed: 4s
+
+[Epoch 21/50]
+Train Loss: 0.01 | Train Accuracy: 99.59% | Val Loss: 0.01 | Val Accuracy: 99.53%
+Epoch Duration: 0s | Total Time Elapsed: 5s
+
+[Epoch 22/50]
+Train Loss: 0.01 | Train Accuracy: 99.66% | Val Loss: 0.01 | Val Accuracy: 99.73%
+Epoch Duration: 0s | Total Time Elapsed: 5s
+
+[Epoch 23/50]
+Train Loss: 0.01 | Train Accuracy: 99.76% | Val Loss: 0.01 | Val Accuracy: 99.70%
+Epoch Duration: 0s | Total Time Elapsed: 5s
+
+[Epoch 24/50]
+Train Loss: 0.01 | Train Accuracy: 99.59% | Val Loss: 0.02 | Val Accuracy: 99.53%
+Epoch Duration: 0s | Total Time Elapsed: 5s
+
+[Epoch 25/50]
+Train Loss: 0.01 | Train Accuracy: 99.61% | Val Loss: 0.01 | Val Accuracy: 99.53%
+Epoch Duration: 0s | Total Time Elapsed: 5s
+
+[Epoch 26/50]
+Train Loss: 0.01 | Train Accuracy: 99.74% | Val Loss: 0.01 | Val Accuracy: 99.70%
+Epoch Duration: 0s | Total Time Elapsed: 5s
+
+[Epoch 27/50]
+Stopping early at epoch 27 (no improvement for 10 epochs)
+Training completed in 6s.
+Best model had an accuracy of 99.73%.
+Running benchmark on test set...
+Test Accuracy: 99.83% | Total MACs: 2,613,770 | Total ACs: 0
+Results saved to /mnt/iusers01/fse-ugpgt01/compsci01/x06213zr/scratch/bio-inspired-sonar-for-underwater-object-detection/runs/cnn-audiomnist-mel_2026-03-24_20-40/results.json
+===== Training finished at Tue 24 Mar 21:14:51 GMT 2026 =====
