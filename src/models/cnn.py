@@ -20,9 +20,8 @@ class VGGBlock(nn.Module):
         return self.pool(x)
 
 
-# TODO: Move out
 class CNN(nn.Module):
-    def __init__(self, in_channels: int = 1, num_classes: int = 10, channels: list[int] = [8, 16]):
+    def __init__(self, in_channels: int, num_classes: int, channels: list[int]):
         super().__init__()
 
         vgg_blocks = []

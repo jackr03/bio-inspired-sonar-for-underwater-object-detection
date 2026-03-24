@@ -28,7 +28,7 @@ class VGGBlock(nn.Module):
         return self.lif1.init_leaky(), self.lif2.init_leaky()
 
 class SNNDirect(nn.Module):
-    def __init__(self, beta_init: float, slope: int, timesteps: int, in_channels: int = 1, num_classes: int = 10, channels: list[int] = [8, 16]):
+    def __init__(self, in_channels: int, num_classes: int, channels: list[int], beta_init: float, slope: int, timesteps: int):
         super().__init__()
 
         self.timesteps = timesteps

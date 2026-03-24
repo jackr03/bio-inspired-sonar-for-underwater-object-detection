@@ -21,7 +21,7 @@ def run_hyperparameter_sweep(device, model_type: ModelType, dataset_type: Datase
         dataset = get_dataset(model_type, dataset_type, filterbank_type)
         train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset)
 
-        model = components['model_class'](num_classes=dataset_type.num_classes, **hyperparameters['model_init']).to(device)
+        model = components['model_class'](**dataset_type.get_model_config(model_type), **hyperparameters['model_init']).to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=hyperparameters['lr'])
         criterion = nn.CrossEntropyLoss()
 

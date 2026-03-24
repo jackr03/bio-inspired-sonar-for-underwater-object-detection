@@ -28,7 +28,7 @@ class VGGBlock(nn.Module):
         return self.lif1.init_leaky(), self.lif2.init_leaky()
 
 class SNN(nn.Module):
-    def __init__(self, beta_init: float, slope: int, in_channels: int = 2, num_classes: int = 10, channels: list[int] = [8, 16]):
+    def __init__(self, in_channels: int, num_classes: int, channels: list[int], beta_init: float, slope: int):
         super().__init__()
 
         spike_grad = surrogate.fast_sigmoid(slope)
