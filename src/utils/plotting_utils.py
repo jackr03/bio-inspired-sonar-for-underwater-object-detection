@@ -1,7 +1,28 @@
+import torch
 from matplotlib import pyplot as plt
 
 MAC_ENERGY_PJ = 3.7 + 0.9
 AC_ENERGY_PJ = 0.9
+
+
+def visualise_spikes(file_name: str, spike_tensor: torch.Tensor, ) -> None:
+    spikes = spike_tensor.squeeze(1).detach().cpu().numpy()
+    time_steps, bins = spikes.shape
+
+    on_times, on_bins = (spikes == 1).nonzero()
+    off_times, off_bins = (spikes == -1).nonzero()
+
+    plt.scatter(on_times, on_bins, color='green', marker='|', s=50, label='On-spikes (+)')
+    plt.scatter(off_times, off_bins, color='red', marker='|', s=50, label='Off-spikes (-)')
+    plt.title(f'Spike Raster plot for {file_name}')
+    plt.xlabel('Time Steps')
+    plt.ylabel('Bins')
+    plt.ylim(-0.5, bins - 0.5)
+    plt.xlim(-0.5, time_steps - 0.5)
+    plt.legend(loc='upper right')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
 
 def plot_training_history(train_losses: list[float], train_accs: list[float], val_losses: list[float], val_accs: list[float]) -> None:

@@ -1,20 +1,21 @@
 import warnings
-from pathlib import Path
 
 import torch
 import torchaudio
 from torch import nn, Tensor
 from torch.utils.data import Dataset
 
+from src.types.dataset_type import DatasetType
+
 
 class AudioDataset(Dataset):
-    def __init__(self, input_dir: Path, label_map: dict, pipeline: nn.Module):
+    def __init__(self, dataset: DatasetType, pipeline: nn.Module):
         self.pipeline = pipeline
 
-        all_files = sorted(input_dir.rglob('*.wav'), key=lambda x: x.stem)
-        # Ignore those that don't have a mapping, i.e. we've decided to ignore
-        self.audio_files = [f for f in all_files if f.stem in label_map]
-        self.labels = [label_map[file.stem] for file in self.audio_files]
+        all_files = sorted(dataset.input_dir.rglob('*.wav'), key=lambda x: x.stem)
+        # Ignore those that excluded in the config
+        self.audio_files = [file for file in all_files if dataset.file_to_label[file.stem] not in dataset.config.excluded_classes]
+        self.labels = [dataset.file_to_label_id[file.stem] for file in self.audio_files]
 
     def __len__(self) -> int:
         return len(self.audio_files)
