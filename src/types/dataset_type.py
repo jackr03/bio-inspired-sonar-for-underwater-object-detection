@@ -36,7 +36,7 @@ class DatasetType(str, Enum):
     def _metadata(self) -> dict:
         match self:
             case DatasetType.AUDIOMNIST:
-                audio_files = self.input_dir.rglob('*.wav')
+                audio_files = list(self.input_dir.rglob('*.wav'))
                 file_to_label = {file.stem: file.stem.split('_')[0] for file in audio_files}
                 file_to_label_id = {file.stem: int(file.stem.split('_')[0]) for file in audio_files}
                 label_id_to_label = {label_id: str(label_id) for label_id in sorted(set(file_to_label_id.values()))}

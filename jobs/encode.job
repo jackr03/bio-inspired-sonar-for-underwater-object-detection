@@ -1,7 +1,8 @@
 #!/bin/bash
 
-#SBATCH --partition=serial
-#SBATCH -c 1
+#SBATCH --partition=gpuL
+#SBATCH --gpus=1
+#SBATCH -c 8
 #SBATCH --ntasks=1
 #SBATCH --time=1-0
 
@@ -29,5 +30,5 @@ source ./.venv/bin/activate
 pip install --quiet -r "$BASE/requirements/requirements-cuda.txt"
 
 echo "===== Encoding started at $(date) ====="
-
+CUDA_VISIBLE_DEVICES=0 python -u -m src.run_encode --dataset "$DATASET" --filterbank "$FILTERBANK"
 echo "===== Encoding finished at $(date) ====="
