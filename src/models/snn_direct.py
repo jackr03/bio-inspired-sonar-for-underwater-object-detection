@@ -31,7 +31,7 @@ class ConvBlock(nn.Module):
         return self.lif.init_leaky()
 
 class SNNDirect(nn.Module):
-    def __init__(self, beta_init: float, slope: int, timesteps: int):
+    def __init__(self, num_classes: int, beta_init: float, slope: int, timesteps: int):
         super().__init__()
 
         self.timesteps = timesteps
@@ -43,10 +43,10 @@ class SNNDirect(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(192, 10)
+            nn.LazyLinear(out_features=num_classes)
         )
 
-        beta = torch.ones(10) * beta_init
+        beta = torch.ones(num_classes) * beta_init
         self.lif_out = snn.Leaky(spike_grad=spike_grad, beta=beta, learn_beta=True, output=True)
 
     def forward(self, x: Tensor) -> Tensor:

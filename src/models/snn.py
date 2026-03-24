@@ -31,7 +31,7 @@ class ConvBlock(nn.Module):
         return self.lif.init_leaky()
 
 class SNN(nn.Module):
-    def __init__(self, beta_init: float, slope: int):
+    def __init__(self, num_classes: int, beta_init: float, slope: int):
         super().__init__()
 
         spike_grad = surrogate.fast_sigmoid(slope)
@@ -41,10 +41,10 @@ class SNN(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(192, 10)
+            nn.LazyLinear(out_features=num_classes)
         )
 
-        beta_out = torch.ones(10) * beta_init
+        beta_out = torch.ones(num_classes) * beta_init
         self.lif_out = snn.Leaky(spike_grad=spike_grad, beta=beta_out, learn_beta=True, output=True)
 
     def forward(self, x: Tensor) -> Tensor:

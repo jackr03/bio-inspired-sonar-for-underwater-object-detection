@@ -89,12 +89,12 @@ def compare_models(device, model1_type: ModelType, model2_type: ModelType, datas
 
     # Load models
     hyperparameters1 = load_model_hyperparameters(model1_type, components1['hyperparameters_path'])
-    model1 = components1['model_class'](**hyperparameters1['model_init']).to(device)
-    model1.load_state_dict(torch.load(components1['model_path']))
+    model1 = components1['model_class'](num_classes=dataset_type.num_classes, **hyperparameters1['model_init']).to(device)
+    model1.load_state_dict(torch.load(components1['model_path'], map_location=device))
 
     hyperparameters2 = load_model_hyperparameters(model2_type, components2['hyperparameters_path'])
-    model2 = components2['model_class'](**hyperparameters2['model_init']).to(device)
-    model2.load_state_dict(torch.load(components2['model_path']))
+    model2 = components2['model_class'](num_classes=dataset_type.num_classes, **hyperparameters2['model_init']).to(device)
+    model2.load_state_dict(torch.load(components2['model_path'], map_location=device))
 
     # Benchmark
     model1_acc, model1_macs, model1_acs = components1['benchmark_fn'](device, model1, dataloader1)

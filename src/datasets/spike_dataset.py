@@ -6,9 +6,10 @@ from torch.utils.data import Dataset
 
 
 class SpikeDataset(Dataset):
-    def __init__(self, data_dir: Path) -> None:
-        self.file_paths = sorted(data_dir.rglob('*.pt'), key=lambda x: x.stem)
-        self.labels = [int(path.name.split('_')[0]) for path in self.file_paths]
+    def __init__(self, input_dir: Path, label_map: dict) -> None:
+        all_files = sorted(input_dir.rglob('*.pt'), key=lambda x: x.stem)
+        self.file_paths = [f for f in all_files if f.stem in label_map]
+        self.labels = [label_map[file.stem] for file in self.file_paths]
 
     def __len__(self) -> int:
         return len(self.file_paths)

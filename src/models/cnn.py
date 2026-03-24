@@ -19,7 +19,7 @@ class ConvBlock(nn.Module):
         return self.block(x)
 
 class CNN(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes: int):
         super().__init__()
 
         self.feature_extractor = nn.Sequential(
@@ -30,7 +30,7 @@ class CNN(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(192, 10)
+            nn.LazyLinear(out_features=num_classes)
         )
 
     def forward(self, x: Tensor) -> Tensor:

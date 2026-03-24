@@ -32,7 +32,7 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
     print(f'Hyperparameters used: {hyperparameters}')
     print()
 
-    model = components['model_class'](**hyperparameters['model_init']).to(device)
+    model = components['model_class'](num_classes=dataset_type.num_classes, **hyperparameters['model_init']).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=hyperparameters['lr'])
     criterion = nn.CrossEntropyLoss()
 
@@ -78,7 +78,7 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
 
     # Benchmark
     print(f'Running benchmark on test set...')
-    model.load_state_dict(torch.load(components['model_path']))
+    model.load_state_dict(torch.load(components['model_path'], map_location=device))
     test_acc, macs, acs = components['benchmark_fn'](device, model, test_dataloader)
     print(f'Test Accuracy: {test_acc:.2f}% | Total MACs: {macs:,} | Total ACs: {acs:,}')
 

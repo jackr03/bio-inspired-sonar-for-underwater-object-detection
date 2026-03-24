@@ -8,10 +8,13 @@ from torch.utils.data import Dataset
 
 
 class AudioDataset(Dataset):
-    def __init__(self, input_dir: Path, pipeline: nn.Module):
+    def __init__(self, input_dir: Path, label_map: dict, pipeline: nn.Module):
         self.pipeline = pipeline
-        self.audio_files = sorted(input_dir.rglob('*.wav'), key=lambda x: x.stem)
-        self.labels = [int(path.name.split('_')[0]) for path in self.audio_files]
+
+        all_files = sorted(input_dir.rglob('*.wav'), key=lambda x: x.stem)
+        # Ignore those that don't have a mapping, i.e. we've decided to ignore
+        self.audio_files = [f for f in all_files if f.stem in label_map]
+        self.labels = [label_map[file.stem] for file in self.audio_files]
 
     def __len__(self) -> int:
         return len(self.audio_files)
