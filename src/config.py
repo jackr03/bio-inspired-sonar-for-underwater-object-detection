@@ -10,6 +10,7 @@ class AudioConfig:
     n_fft: int
     n_bins: int
     delta_threshold: float
+    excluded_classes: set[str]
 
     @property
     def target_samples(self) -> int:
@@ -37,7 +38,8 @@ class Config:
         target_duration=0.84,
         n_fft=1024,
         n_bins=64,
-        delta_threshold=0.1
+        delta_threshold=0.1,
+        excluded_classes=set()
     )
     oceanship: AudioConfig = AudioConfig(
         original_sample_rate=32_000,
@@ -45,7 +47,8 @@ class Config:
         target_duration=5.0,
         n_fft=1024,
         n_bins=128,
-        delta_threshold=0.1
+        delta_threshold=0.1,
+        excluded_classes={'Search and Rescue vessel', 'Military ship', 'Anti-pollution equipment', 'Dredging'}
     )
     hyperparameter_tuning: HyperparameterTuningConfig = HyperparameterTuningConfig()
 
