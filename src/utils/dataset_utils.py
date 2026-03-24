@@ -12,9 +12,10 @@ from src.types.model_type import ModelType
 def get_dataset(model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType) -> Dataset:
     match model_type:
         case ModelType.CNN | ModelType.SNN_DIRECT:
-            return AudioDataset(dataset_type.input_dir, dataset_type.label_map, model_type.pipeline(dataset_type.config, filterbank_type))
+            return AudioDataset(dataset_type.input_dir, dataset_type.file_to_label_id, model_type.pipeline(dataset_type.config, filterbank_type))
         case ModelType.SNN:
-            return SpikeDataset(dataset_type.spike_dir, dataset_type.label_map)
+            spike_dir = dataset_type.get_spike_dir(filterbank_type)
+            return SpikeDataset(spike_dir, dataset_type.file_to_label_id)
 
 
 def get_split_dataloaders(dataset: Dataset) -> tuple[DataLoader, DataLoader, DataLoader]:

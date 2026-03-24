@@ -104,7 +104,7 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Unified Training Entry Point')
+    parser = argparse.ArgumentParser(description='Training Entry Point')
     parser.add_argument('--model', type=ModelType, choices=list(ModelType), required=True)
     parser.add_argument('--dataset', type=DatasetType, choices=list(DatasetType), required=True)
     parser.add_argument('--filterbank', type=FilterbankType, choices=list(FilterbankType), required=True)

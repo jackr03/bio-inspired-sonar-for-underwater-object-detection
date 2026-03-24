@@ -3,8 +3,8 @@ from torchinfo import summary
 from tqdm.auto import tqdm
 
 from src.config import CONFIG
-from src.snn_ac_monitor import SNNACMonitor
 from src.types.model_type import ModelType
+from src.utils.snn_ac_monitor import SNNACMonitor
 
 
 def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
@@ -80,7 +80,7 @@ def benchmark_cnn(device, model, test_dataloader) -> tuple[float, int, int]:
     total = 0
 
     if CONFIG.show_progress:
-        test_dataloader = tqdm(test_dataloader, desc='Testing', unit='batches')
+        test_dataloader = tqdm(test_dataloader, desc='Benchmarking', unit='batches')
 
     with torch.inference_mode():
         for inputs, labels in test_dataloader:
@@ -170,7 +170,7 @@ def benchmark_snn(device, model, test_dataloader) -> tuple[float, int, int]:
     total = 0
 
     if CONFIG.show_progress:
-        test_dataloader = tqdm(test_dataloader, desc='Testing', unit='batches')
+        test_dataloader = tqdm(test_dataloader, desc='Benchmarking', unit='batches')
 
     with torch.inference_mode():
         for inputs, labels in test_dataloader:

@@ -1,8 +1,10 @@
 import csv
 from enum import Enum
+from functools import cached_property
 from pathlib import Path
 
 from src.config import AudioConfig, CONFIG
+from src.types.filterbank_type import FilterbankType
 
 
 class DatasetType(str, Enum):
@@ -21,34 +23,52 @@ class DatasetType(str, Enum):
     def input_dir(self) -> Path:
         return CONFIG.project_root / 'data' / self
 
-    @property
-    def spike_dir(self) -> Path:
-        return CONFIG.project_root / 'processed' / self
+    def get_spike_dir(self, filterbank_type: FilterbankType) -> Path:
+        return CONFIG.project_root / 'processed' / f'{self.value}-{filterbank_type.value}'
 
+    # TODO: Make this a property including channels for VGG
     @property
-    def label_map(self) -> dict:
+    def num_classes(self) -> int:
+        return len(self.label_id_to_label)
+
+    @cached_property
+    def _metadata(self) -> dict:
         match self:
             case DatasetType.AUDIOMNIST:
                 audio_files = self.input_dir.rglob('*.wav')
-                return {file.stem: int(file.stem.split('_')[0]) for file in audio_files}
+                file_to_label_id = {file.stem: int(file.stem.split('_')[0]) for file in audio_files}
+                label_id_to_label = {label_id: str(label_id) for label_id in sorted(set(file_to_label_id.values()))}
+
+                return {
+                    'file_to_label_id': file_to_label_id,
+                    'label_id_to_label': label_id_to_label
+                }
             case DatasetType.OCEANSHIP:
                 train_csv = self.input_dir / 'oceanship_full_train.csv'
                 test_csv = self.input_dir / 'oceanship_full_test.csv'
-                excluded_classes = {'Military ship', 'Anti-pollution', 'Dredging', 'Search and Rescue'}
 
                 raw_lookup = {}
                 for csv_path in [train_csv, test_csv]:
                     with open(csv_path, 'r') as f:
                         reader = csv.DictReader(f)
                         for row in reader:
-                            if row['label'] in excluded_classes:
-                                continue
                             key = Path(row['wav_path']).stem
                             raw_lookup[key] = row['label']
 
-                label_to_int = {label: i for i, label in enumerate(sorted(set(raw_lookup.values())))}
-                return {stem: label_to_int[label] for stem, label in raw_lookup.items()}
+                unique_classes = sorted(set(raw_lookup.values()))
+                label_to_label_id = {label: label_id for label_id, label in enumerate(unique_classes)}
+                label_id_to_label = {label_id: label for label_id, label in enumerate(unique_classes)}
+                file_to_label_id = {stem: label_to_label_id[label] for stem, label in raw_lookup.items()}
+
+                return {
+                    'file_to_label_id': file_to_label_id,
+                    'label_id_to_label': label_id_to_label
+                }
 
     @property
-    def num_classes(self) -> int:
-        return len(set(self.label_map.values()))
+    def file_to_label_id(self) -> dict:
+        return self._metadata['file_to_label_id']
+
+    @property
+    def label_id_to_label(self) -> dict:
+        return self._metadata['label_id_to_label']

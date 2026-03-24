@@ -5,8 +5,11 @@
 #SBATCH --ntasks=1
 #SBATCH --time=1-0
 
-# Usage: sbatch process.job
+# Usage: sbatch encode.job <dataset> <filterbank>
 set -euo pipefail
+
+DATASET="${1:?Usage: sbatch encode.job <dataset> <filterbank>}"
+FILTERBANK="${2:?Usage: sbatch encode.job <dataset> <filterbank>}"
 
 module load apps/binapps/conda/miniforge3/25.9.1
 
@@ -25,7 +28,6 @@ python -m venv .venv
 source ./.venv/bin/activate
 pip install --quiet -r "$BASE/requirements/requirements-cuda.txt"
 
-echo "===== Processing started at $(date) ====="
-papermill notebooks/phase2/audiomnist_encoding.ipynb /dev/null --cwd .
+echo "===== Encoding started at $(date) ====="
 
-echo "===== Processing finished at $(date) ====="
+echo "===== Encoding finished at $(date) ====="

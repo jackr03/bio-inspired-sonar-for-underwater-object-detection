@@ -26,5 +26,5 @@ class AudioDataset(Dataset):
         # Couldn't get torchcodec to work, so ignore these deprecation warnings
         warnings.filterwarnings('ignore', message='.*torchcodec.*')
         waveform, sample_rate = torchaudio.load(audio_file)
-        mel_spectrogram = self.pipeline(waveform)
-        return mel_spectrogram, torch.tensor(label, dtype=torch.long)
+        spectrogram = self.pipeline(waveform)
+        return spectrogram, torch.tensor(label, dtype=torch.long)
