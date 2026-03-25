@@ -43,8 +43,8 @@ class Config:
     )
     oceanship: AudioConfig = AudioConfig(
         original_sample_rate=32_000,
-        target_sample_rate=32_000,
-        target_duration=5.0,
+        target_sample_rate=16_000,
+        target_duration=2.0,
         n_fft=1024,
         n_bins=128,
         delta_threshold=0.1,
