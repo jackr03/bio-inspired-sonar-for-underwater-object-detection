@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Callable
 
-from src.preprocessing import get_cnn_pipeline, get_snn_pipeline
+from src.utils.preprocessing_utils import get_cnn_pipeline, get_snn_pipeline
 
 
 class ModelType(str, Enum):

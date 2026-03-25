@@ -6,11 +6,15 @@
 #SBATCH --ntasks=1
 #SBATCH --time=1-0
 
-# Usage: sbatch encode.job <dataset> <filterbank>
+# Usage: sbatch process.job <dataset> <filterbank> [--encode]
 set -euo pipefail
 
-DATASET="${1:?Usage: sbatch encode.job <dataset> <filterbank>}"
-FILTERBANK="${2:?Usage: sbatch encode.job <dataset> <filterbank>}"
+DATASET="${1:?Usage: sbatch encode.job <dataset> <filterbank> [--encode]}"
+FILTERBANK="${2:?Usage: sbatch encode.job <dataset> <filterbank> [--encode]}"
+ENCODE_FLAG=""
+if [[ "${3:-}" == "--encode" ]]; then
+  ENCODE_FLAG="--encode"
+fi
 
 module load apps/binapps/conda/miniforge3/25.9.1
 
@@ -30,5 +34,5 @@ source ./.venv/bin/activate
 pip install --quiet -r "$BASE/requirements/requirements-cuda.txt"
 
 echo "===== Encoding started at $(date) ====="
-CUDA_VISIBLE_DEVICES=0 python -u -m src.run_encode --dataset "$DATASET" --filterbank "$FILTERBANK"
+CUDA_VISIBLE_DEVICES=0 python -u -m src.run_process --dataset "$DATASET" --filterbank "$FILTERBANK" $ENCODE_FLAG
 echo "===== Encoding finished at $(date) ====="

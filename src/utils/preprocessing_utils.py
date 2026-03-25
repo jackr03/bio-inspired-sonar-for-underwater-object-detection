@@ -1,6 +1,9 @@
+from pathlib import Path
+
 import torch
 import torchaudio
 from nnAudio.features import Gammatonegram
+from snntorch import spikegen
 from torch import nn, Tensor
 
 from src.config import AudioConfig
@@ -104,3 +107,28 @@ def get_snn_pipeline(config: AudioConfig, filterbank: FilterbankType) -> nn.Modu
         get_spectrogram_transformer(config, filterbank),
         MinMaxScaler()
     )
+
+
+def process_file(file_path: Path, output_dir: Path, pipeline: nn.Module) -> None:
+    try:
+        waveform, _ = torchaudio.load(file_path)
+        spectrogram = pipeline(waveform)
+        save_path = output_dir / f'{file_path.stem}.pt'
+        torch.save(spectrogram.to(torch.float32), save_path)
+    except Exception as e:
+        print(f'Error processing {file_path}: {e}')
+
+
+def encode_file(file_path: Path, output_dir: Path, pipeline: nn.Module, delta_threshold: float) -> None:
+    try:
+        waveform, _ = torchaudio.load(file_path)
+        spectrogram = pipeline(waveform)
+
+        # Permute to (Time, Channels, n_mels) as spikegen requires time to be first
+        transposed = spectrogram.permute(2, 0, 1)
+
+        spikes = spikegen.delta(transposed, threshold=delta_threshold, off_spike=True)
+        save_path = output_dir / f'{file_path.stem}.pt'
+        torch.save(spikes.to(torch.float32), save_path)
+    except Exception as e:
+        print(f'Error processing {file_path}: {e}')

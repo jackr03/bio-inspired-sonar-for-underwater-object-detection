@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 
 from src.config import CONFIG
-from src.datasets.audio_dataset import AudioDataset
+from src.datasets.spectrogram_dataset import SpectrogramDataset
 from src.datasets.spike_dataset import SpikeDataset
 from src.types.dataset_type import DatasetType
 from src.types.filterbank_type import FilterbankType
@@ -12,7 +12,7 @@ from src.types.model_type import ModelType
 def get_dataset(model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType) -> Dataset:
     match model_type:
         case ModelType.CNN | ModelType.SNN_DIRECT:
-            return AudioDataset(dataset_type, model_type.pipeline(dataset_type.config, filterbank_type))
+            return SpectrogramDataset(dataset_type, filterbank_type)
         case ModelType.SNN:
             return SpikeDataset(dataset_type, filterbank_type)
 
