@@ -8,7 +8,8 @@ from src.types.dataset_type import DatasetType
 
 class AudioDataset(Dataset):
     def __init__(self, dataset: DatasetType, pipeline: nn.Module):
-        audio_files = sorted(dataset.input_dir.rglob('*.wav'), key=lambda x: x.stem)
+        all_files = sorted(dataset.input_dir.rglob('*.wav'), key=lambda x: x.stem)
+        audio_files = [file for file in all_files if file.stem in dataset.label_map]
         self.spectrograms = []
         for file in audio_files:
             waveform, _ = torchaudio.load(file)

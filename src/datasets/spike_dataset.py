@@ -9,7 +9,8 @@ from src.types.filterbank_type import FilterbankType
 class SpikeDataset(Dataset):
     def __init__(self, dataset: DatasetType, filterbank: FilterbankType) -> None:
         spike_dir = dataset.get_spike_dir(filterbank)
-        self.file_paths = sorted(spike_dir.rglob('*.pt'), key=lambda x: x.stem)
+        all_files = sorted(spike_dir.rglob('*.pt'), key=lambda x: x.stem)
+        self.file_paths = [file for file in all_files if file.stem in dataset.label_map]
         self.labels = [dataset.label_map[file.stem] for file in self.file_paths]
 
     def __len__(self) -> int:
