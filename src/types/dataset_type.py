@@ -1,8 +1,11 @@
 import csv
 import random
+from collections import Counter
 from enum import Enum
 from functools import cached_property
 from pathlib import Path
+
+import torch
 
 from src.config import AudioConfig, CONFIG
 from src.types.filterbank_type import FilterbankType
@@ -29,22 +32,16 @@ class DatasetType(str, Enum):
         return CONFIG.project_root / 'processed' / f'{self.value}-{filterbank_type.value}'
 
     @cached_property
-    def _metadata(self) -> dict:
+    def label_map(self) -> dict[str, int]:
+        """Maps file stem to label ID, excluding classes specified in config."""
         match self:
             case DatasetType.AUDIOMNIST:
                 audio_files = list(self.input_dir.rglob('*.wav'))
-                file_to_label = {file.stem: file.stem.split('_')[0] for file in audio_files}
-                file_to_label_id = {file.stem: int(file.stem.split('_')[0]) for file in audio_files}
-                label_id_to_label = {label_id: str(label_id) for label_id in sorted(set(file_to_label_id.values()))}
-
-                return {
-                    'file_to_label': file_to_label,
-                    'file_to_label_id': file_to_label_id,
-                    'label_id_to_label': label_id_to_label
-                }
+                return {file.stem: int(file.stem.split('_')[0]) for file in audio_files}
             case DatasetType.OCEANSHIP:
                 train_csv = self.input_dir / 'oceanship_full_train.csv'
                 test_csv = self.input_dir / 'oceanship_full_test.csv'
+                excluded = self.config.excluded_classes
 
                 file_to_label = {}
                 for csv_path in [train_csv, test_csv]:
@@ -52,34 +49,26 @@ class DatasetType(str, Enum):
                         reader = csv.DictReader(f)
                         for row in reader:
                             key = Path(row['wav_path']).stem
-                            file_to_label[key] = row['label']
+                            label = row['label']
+                            if label not in excluded:
+                                file_to_label[key] = label
 
                 unique_classes = sorted(set(file_to_label.values()))
-                label_to_label_id = {label: label_id for label_id, label in enumerate(unique_classes)}
-                label_id_to_label = {label_id: label for label_id, label in enumerate(unique_classes)}
-                file_to_label_id = {stem: label_to_label_id[label] for stem, label in file_to_label.items()}
-
-                return {
-                    'file_to_label': file_to_label,
-                    'file_to_label_id': file_to_label_id,
-                    'label_id_to_label': label_id_to_label
-                }
-
-    @property
-    def file_to_label(self) -> dict:
-        return self._metadata['file_to_label']
-
-    @property
-    def file_to_label_id(self) -> dict:
-        return self._metadata['file_to_label_id']
-
-    @property
-    def label_id_to_label(self) -> dict:
-        return self._metadata['label_id_to_label']
+                label_to_id = {label: i for i, label in enumerate(unique_classes)}
+                return {stem: label_to_id[label] for stem, label in file_to_label.items()}
 
     @property
     def num_classes(self) -> int:
-        return len(self.label_id_to_label)
+        return len(set(self.label_map.values()))
+
+    @cached_property
+    def class_weights(self) -> torch.Tensor:
+        counts = Counter(self.label_map.values())
+        total = sum(counts.values())
+        weights = torch.zeros(self.num_classes)
+        for label_id, count in counts.items():
+            weights[label_id] = total / (self.num_classes * count)
+        return weights
 
     def get_random_encoded_file(self, filterbank: FilterbankType) -> Path:
         files = list(self.get_spike_dir(filterbank).rglob('*pt'))

@@ -34,7 +34,7 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
 
     model = components['model_class'](**dataset_type.get_model_config(model_type), **hyperparameters['model_init']).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=hyperparameters['lr'])
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=dataset_type.class_weights.to(device))
 
     print(f'Training {model_type.name}...')
     best_acc = 0.0

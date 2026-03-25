@@ -8,15 +8,14 @@ from src.types.dataset_type import DatasetType
 
 class AudioDataset(Dataset):
     def __init__(self, dataset: DatasetType, pipeline: nn.Module):
-        all_files = sorted(dataset.input_dir.rglob('*.wav'), key=lambda x: x.stem)
-        audio_files = [file for file in all_files if dataset.file_to_label[file.stem] not in dataset.config.excluded_classes]
+        audio_files = sorted(dataset.input_dir.rglob('*.wav'), key=lambda x: x.stem)
         self.spectrograms = []
         for file in audio_files:
             waveform, _ = torchaudio.load(file)
             spectrogram = pipeline(waveform)
             self.spectrograms.append(spectrogram)
 
-        self.labels = [dataset.file_to_label_id[file.stem] for file in audio_files]
+        self.labels = [dataset.label_map[file.stem] for file in audio_files]
 
     def __len__(self) -> int:
         return len(self.spectrograms)

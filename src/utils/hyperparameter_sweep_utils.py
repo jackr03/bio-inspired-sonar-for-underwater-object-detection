@@ -24,7 +24,7 @@ def run_hyperparameter_sweep(device, model_type: ModelType, dataset_type: Datase
 
         model = components['model_class'](**dataset_type.get_model_config(model_type), **hyperparameters['model_init']).to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=hyperparameters['lr'])
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss(weight=dataset_type.class_weights.to(device))
 
         val_acc = 0.0
         for epoch in range(CONFIG.hyperparameter_tuning.epochs):
