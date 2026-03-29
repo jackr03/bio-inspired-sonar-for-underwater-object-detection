@@ -32,6 +32,15 @@ python -m venv .venv
 source ./.venv/bin/activate
 pip install --quiet -r "$BASE/requirements/requirements-cuda.txt"
 
+echo "Temporarily copying processed data to temporary directory..."
+if [[ "$MODEL" == "snn" ]]; then
+    TAR_NAME="${DATASET}-${FILTERBANK}-spikes"
+else
+    TAR_NAME="${DATASET}-${FILTERBANK}-spectrograms"
+fi
+tar xf "$BASE/processed/${TAR_NAME}.tar" -C "$TMPDIR/"
+export PROCESSED_DATA_DIR="$TMPDIR"
+
 echo "===== Training started at $(date) ====="
 CUDA_VISIBLE_DEVICES=0 python -u -m src.run_train --model "$MODEL" --dataset "$DATASET" --filterbank "$FILTERBANK" --run-dir "$RUN_DIR"
 echo "===== Training finished at $(date) ====="

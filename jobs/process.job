@@ -33,6 +33,16 @@ python -m venv .venv
 source ./.venv/bin/activate
 pip install --quiet -r "$BASE/requirements/requirements-cuda.txt"
 
-echo "===== Encoding started at $(date) ====="
-CUDA_VISIBLE_DEVICES=0 python -u -m src.run_process --dataset "$DATASET" --filterbank "$FILTERBANK" $ENCODE_FLAG
-echo "===== Encoding finished at $(date) ====="
+echo "===== Processing started at $(date) ====="
+python -u -m src.run_process --dataset "$DATASET" --filterbank "$FILTERBANK" $ENCODE_FLAG
+
+echo "Archiving processed data..."
+if [[ -n "$ENCODE_FLAG" ]]; then
+    OUTPUT_DIR="${DATASET}-${FILTERBANK}-spikes"
+else
+    OUTPUT_DIR="${DATASET}-${FILTERBANK}-spectrograms"
+fi
+cd $BASE/processed
+tar cf "${OUTPUT_DIR}.tar" "${OUTPUT_DIR}"
+rm -rf "${OUTPUT_DIR}"
+echo "===== Processing finished at $(date) ====="
