@@ -79,8 +79,8 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
         epoch_duration = time.time() - epoch_start
         total_elapsed = time.time() - start_time
 
-        print(f'[Train] Loss: {train_metrics["loss"]:.2f} | Acc: {train_metrics["accuracy"]:.2f}% | Macro-F1: {train_metrics["macro_f1"]:.4f} | Weighted-F1: {train_metrics['weighted_f1']}')
-        print(f'[Val] Loss: {val_metrics["loss"]:.2f} | Acc: {val_metrics["accuracy"]:.2f}% | Macro-F1: {val_metrics["macro_f1"]:.4f} | Weighted-F1: {train_metrics['weighted_f1']}')
+        print(f'[Train] Loss: {train_metrics["loss"]:.2f} | Acc: {train_metrics["accuracy"]:.2f}% | Macro-F1: {train_metrics["macro_f1"]:.4f} | Weighted-F1: {train_metrics['weighted_f1']:.4f}')
+        print(f'[Val] Loss: {val_metrics["loss"]:.2f} | Acc: {val_metrics["accuracy"]:.2f}% | Macro-F1: {val_metrics["macro_f1"]:.4f} | Weighted-F1: {train_metrics['weighted_f1']:.4f}')
         print(f'Epoch Duration: {epoch_duration:.0f}s | Total Time Elapsed: {total_elapsed:.0f}s')
         print()
 
