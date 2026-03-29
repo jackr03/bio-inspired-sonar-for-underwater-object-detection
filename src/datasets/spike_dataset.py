@@ -13,6 +13,7 @@ class SpikeDataset(Dataset):
         files = [file for file in all_files if file.stem in dataset.label_map]
 
         print(f'Loading {len(files)} spikes...')
+        start_time = time.time()
         self.spikes = []
         for file in files:
             spikes = torch.load(file)
@@ -26,6 +27,7 @@ class SpikeDataset(Dataset):
 
             self.spikes.append(dual_channel_spikes)
         print(f'Finished loading spikes.')
+        print(f'Time taken: {time.time() - start_time:.0f} seconds')
 
         self.labels = [dataset.label_map[file.stem] for file in files]
 

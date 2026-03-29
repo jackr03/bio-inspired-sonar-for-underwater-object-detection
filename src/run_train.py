@@ -27,12 +27,16 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
     dataset = get_dataset(model_type, dataset_type, filterbank_type)
     train_dataloader, val_dataloader, test_dataloader = get_split_dataloaders(dataset)
 
-    # Load hyperparameters
+    # Load model parameters
+    model_config = dataset_type.get_model_config(model_type)
     hyperparameters = load_model_hyperparameters(model_type, components['hyperparameters_path'])
+    model_params = {**model_config, **hyperparameters['model_init']} # Combine into one for easier use
+
+    print(f'Model Config: {model_config}')
     print(f'Hyperparameters used: {hyperparameters}')
     print()
 
-    model = components['model_class'](**dataset_type.get_model_config(model_type), **hyperparameters['model_init']).to(device)
+    model = components['model_class'](**model_params).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=hyperparameters['lr'])
     criterion = nn.CrossEntropyLoss(weight=dataset_type.class_weights.to(device))
 

@@ -26,7 +26,7 @@ def run_process(dataset: DatasetType, filterbank: FilterbankType, encode: bool) 
     output_dir.mkdir(parents=True, exist_ok=True)
 
     wav_files = list(dataset.input_dir.rglob('*.wav'))
-    print(f'{'Encoding' if encode else 'Processing'} {len(wav_files)} files for {dataset.value} using {filterbank.value}) filterbanks...')
+    print(f'{'Encoding' if encode else 'Processing'} {len(wav_files)} files for {dataset.value} using {filterbank.value} filterbanks...')
 
     num_workers = os.cpu_count()
     start_time = time.time()

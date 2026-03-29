@@ -20,7 +20,7 @@ class AudioConfig:
 @dataclass(frozen=True)
 class HyperparameterTuningConfig:
     should_run: bool = True
-    epochs: int = 5
+    epochs: int = 15
     trials: int = 20
 
 
@@ -28,7 +28,7 @@ class HyperparameterTuningConfig:
 class Config:
     project_root = Path(__file__).resolve().parent.parent
     seed: int = 100
-    epochs: int = 50
+    epochs: int = 100
     patience: int = 10
     batch_size: int = 256
     show_progress: bool = False

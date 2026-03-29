@@ -1,3 +1,5 @@
+import time
+
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -13,11 +15,13 @@ class SpectrogramDataset(Dataset):
         files = [file for file in all_files if file.stem in dataset.label_map]
 
         print(f'Loading {len(files)} spectrograms...')
+        start_time = time.time()
         self.spectrograms = []
         for file in files:
             spectrogram = torch.load(file)
             self.spectrograms.append(spectrogram)
         print(f'Finished loading spectrograms.')
+        print(f'Time taken: {time.time() - start_time:.0f} seconds')
 
         self.labels = [dataset.label_map[file.stem] for file in files]
 

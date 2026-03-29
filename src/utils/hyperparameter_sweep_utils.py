@@ -15,14 +15,16 @@ from src.utils.model_utils import get_model_components
 
 def run_hyperparameter_sweep(device, model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType):
     components = get_model_components(model_type, dataset_type, filterbank_type)
+    model_config = dataset_type.get_model_config(model_type)
 
     dataset = get_dataset(model_type, dataset_type, filterbank_type)
     train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset)
 
     def objective(trial) -> float | tuple[float, int]:
         hyperparameters = get_hyperparameter_suggestions(trial, model_type)
+        model_params = {**model_config, **hyperparameters['model_init']}
 
-        model = components['model_class'](**dataset_type.get_model_config(model_type), **hyperparameters['model_init']).to(device)
+        model = components['model_class'](**model_params).to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=hyperparameters['lr'])
         criterion = nn.CrossEntropyLoss(weight=dataset_type.class_weights.to(device))
 
@@ -51,7 +53,8 @@ def run_hyperparameter_sweep(device, model_type: ModelType, dataset_type: Datase
 def get_hyperparameter_suggestions(trial, model_type: ModelType) -> dict:
     # Common parameters
     hyperparameters = {
-        'lr': trial.suggest_float('lr', 1e-4, 1e-2, log=True)
+        'lr': trial.suggest_float('lr', 1e-5, 5e-4, log=True),
+        # 'lr': trial.suggest_float('lr', 1e-4, 1e-2, log=True) # Original
     }
 
     match model_type:
@@ -82,7 +85,7 @@ def run_sweep(objective, output_path: Path) -> None:
 
     print('Hyperparameter sweep completed.')
     print(f'Accuracy: {study.best_value:.2f}%')
-    print(f'Parameters: {study.best_params}')
+    print(f'Hyperparameters: {study.best_params}')
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, 'w') as f:
