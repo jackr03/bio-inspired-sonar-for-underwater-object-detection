@@ -4,6 +4,7 @@ from collections import Counter
 from enum import Enum
 from functools import cached_property
 from pathlib import Path
+import os
 
 import torch
 
@@ -27,12 +28,17 @@ class DatasetType(str, Enum):
     @property
     def input_dir(self) -> Path:
         return CONFIG.project_root / 'data' / self
+    
+    @property
+    def _processed_data_dir(self) -> Path:
+        """Determines the directory for processed data (for use with CSF3 clusters)."""
+        return Path(os.environ['PROCESSED_DATA_DIR']) if 'PROCESSED_DATA_DIR' in os.environ else CONFIG.project_root / 'processed'
 
     def get_spectrogram_dir(self, filterbank_type: FilterbankType) -> Path:
-        return CONFIG.project_root / 'processed' / f'{self.value}-{filterbank_type.value}-spectrograms'
+        return self._processed_data_dir / f'{self.value}-{filterbank_type.value}-spectrograms'
 
     def get_spike_dir(self, filterbank_type: FilterbankType) -> Path:
-        return CONFIG.project_root / 'processed' / f'{self.value}-{filterbank_type.value}-spikes'
+        return self._processed_data_dir / f'{self.value}-{filterbank_type.value}-spikes'
 
     @cached_property
     def label_map(self) -> dict[str, int]:
