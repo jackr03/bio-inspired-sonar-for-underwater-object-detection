@@ -55,8 +55,8 @@ def run_hyperparameter_sweep(device, model_type: ModelType, dataset_type: Datase
 def get_hyperparameter_suggestions(trial, model_type: ModelType) -> dict:
     # Common parameters
     hyperparameters = {
-        'lr': trial.suggest_float('lr', 1e-5, 5e-4, log=True),
-        # 'lr': trial.suggest_float('lr', 1e-4, 1e-2, log=True) # Original
+        # 'lr': trial.suggest_float('lr', 1e-5, 5e-4, log=True),
+        'lr': trial.suggest_float('lr', 1e-4, 1e-2, log=True)
     }
 
     match model_type:
@@ -86,7 +86,7 @@ def run_sweep(objective, output_path: Path) -> None:
     study.optimize(objective, n_trials=CONFIG.hyperparameter_tuning.trials)
 
     print('Hyperparameter sweep completed.')
-    print(f'Macro F1: {study.best_value:.4f}')
+    print(f'Best macro-F1: {study.best_value:.4f}')
     print(f'Hyperparameters: {study.best_params}')
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

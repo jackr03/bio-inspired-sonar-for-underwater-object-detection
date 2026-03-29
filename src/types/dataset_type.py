@@ -46,7 +46,8 @@ class DatasetType(str, Enum):
                 test_csv = self.input_dir / 'oceanship_full_test.csv'
                 excluded = self.config.excluded_classes
 
-                file_to_label = {}
+                # Build CSV stem → label mapping
+                csv_labels = {}
                 for csv_path in [train_csv, test_csv]:
                     with open(csv_path, 'r') as f:
                         reader = csv.DictReader(f)
@@ -54,7 +55,11 @@ class DatasetType(str, Enum):
                             key = Path(row['wav_path']).stem
                             label = row['label']
                             if label not in excluded:
-                                file_to_label[key] = label
+                                csv_labels[key] = label
+
+                # Filter to only include files that we have a corresponding .wav file for
+                wav_stems = {f.stem for f in self.input_dir.rglob('*.wav')}
+                file_to_label = {stem: label for stem, label in csv_labels.items() if stem in wav_stems}
 
                 unique_classes = sorted(set(file_to_label.values()))
                 label_to_id = {label: i for i, label in enumerate(unique_classes)}
