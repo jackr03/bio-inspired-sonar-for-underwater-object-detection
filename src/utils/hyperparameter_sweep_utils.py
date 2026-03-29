@@ -6,6 +6,7 @@ import torch
 from torch import nn
 
 from src.config import CONFIG
+from src.engine import train_one_epoch, validate
 from src.types.dataset_type import DatasetType
 from src.types.filterbank_type import FilterbankType
 from src.types.model_type import ModelType
@@ -28,21 +29,22 @@ def run_hyperparameter_sweep(device, model_type: ModelType, dataset_type: Datase
         optimizer = torch.optim.Adam(model.parameters(), lr=hyperparameters['lr'])
         criterion = nn.CrossEntropyLoss(weight=dataset_type.class_weights.to(device))
 
-        val_acc = 0.0
+        val_macro_f1 = 0.0
         for epoch in range(CONFIG.hyperparameter_tuning.epochs):
-            components['train_fn'](device, model, criterion, optimizer, train_dataloader)
-            _, val_acc = components['val_fn'](device, model, criterion, val_dataloader)
+            train_one_epoch(device, model, criterion, optimizer, train_dataloader)
+            val_metrics = validate(device, model, criterion, val_dataloader)
+            val_macro_f1 = val_metrics['macro_f1']
 
             if model_type != ModelType.SNN_DIRECT:
-                trial.report(val_acc, epoch)
+                trial.report(val_macro_f1, epoch)
                 if trial.should_prune():
                     raise optuna.TrialPruned()
 
         match model_type:
             case ModelType.CNN | ModelType.SNN:
-                return val_acc
+                return val_macro_f1
             case ModelType.SNN_DIRECT:
-                return val_acc, hyperparameters['model_init']['timesteps']
+                return val_macro_f1, hyperparameters['model_init']['timesteps']
 
     match model_type:
         case ModelType.CNN | ModelType.SNN:
@@ -84,7 +86,7 @@ def run_sweep(objective, output_path: Path) -> None:
     study.optimize(objective, n_trials=CONFIG.hyperparameter_tuning.trials)
 
     print('Hyperparameter sweep completed.')
-    print(f'Accuracy: {study.best_value:.2f}%')
+    print(f'Macro F1: {study.best_value:.4f}')
     print(f'Hyperparameters: {study.best_params}')
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -93,7 +95,7 @@ def run_sweep(objective, output_path: Path) -> None:
 
 
 def run_sweep_pareto(objective, output_path: Path) -> None:
-    """A special hyperparameter sweep for finding the Pareto front, e.g. maximising SNN accuracy while minimising timesteps."""
+    """A special hyperparameter sweep for finding the Pareto front, e.g. maximising F1-score while minimising timesteps."""
     print('Running hyperparameter sweep (Pareto front)...')
     study = optuna.create_study(directions=['maximize', 'minimize'])
     study.optimize(objective, n_trials=CONFIG.hyperparameter_tuning.trials)
@@ -102,11 +104,11 @@ def run_sweep_pareto(objective, output_path: Path) -> None:
     pareto_results = []
     for trial in study.best_trials:
         pareto_results.append({
-            'accuracy': trial.values[0],
+            'macro_f1': trial.values[0],
             'timesteps': trial.values[1],
             'params': trial.params
         })
-    pareto_results.sort(key=lambda x: x['accuracy'], reverse=True)
+    pareto_results.sort(key=lambda x: x['macro_f1'], reverse=True)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, 'w') as f:

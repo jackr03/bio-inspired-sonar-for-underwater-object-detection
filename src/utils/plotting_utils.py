@@ -25,7 +25,9 @@ def visualise_spikes(file_name: str, spike_tensor: torch.Tensor, ) -> None:
     plt.show()
 
 
-def plot_training_history(train_losses: list[float], train_accs: list[float], val_losses: list[float], val_accs: list[float]) -> None:
+def plot_training_history(train_losses: list[float], val_losses: list[float],
+                          train_macro_f1s: list[float], val_macro_f1s: list[float],
+                          **_kwargs) -> None:
     epochs = range(1, len(train_losses) + 1)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 8), sharex=True)
@@ -39,10 +41,10 @@ def plot_training_history(train_losses: list[float], train_accs: list[float], va
     ax1.legend()
     ax1.grid(True)
 
-    ax2.plot(epochs, train_accs, label='Train')
-    ax2.plot(epochs, val_accs, label='Validation')
+    ax2.plot(epochs, train_macro_f1s, label='Train')
+    ax2.plot(epochs, val_macro_f1s, label='Validation')
     ax2.set_xlabel('Epochs')
-    ax2.set_ylabel('Accuracy (%)')
+    ax2.set_ylabel('Macro F1')
     ax2.legend()
     ax2.grid(True)
 

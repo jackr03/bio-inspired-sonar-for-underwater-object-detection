@@ -5,8 +5,7 @@ import torch
 from matplotlib import pyplot as plt
 
 from src.config import CONFIG
-from src.engine import train_one_epoch_cnn, validate_cnn, benchmark_cnn, train_one_epoch_snn, validate_snn, \
-    benchmark_snn
+from src.engine import benchmark
 from src.models.cnn import CNN
 from src.models.snn import SNN
 from src.models.snn_direct import SNNDirect
@@ -16,39 +15,20 @@ from src.types.model_type import ModelType
 from src.utils.dataset_utils import get_dataset, get_split_dataloaders
 from src.utils.plotting_utils import plot_accuracy_comparison, plot_energy_comparison
 
+MODEL_CLASSES = {
+    ModelType.CNN: CNN,
+    ModelType.SNN_DIRECT: SNNDirect,
+    ModelType.SNN: SNN,
+}
+
 
 def get_model_components(model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType):
     file_name = _format_file_name(model_type, dataset_type, filterbank_type)
-    components = {
-        'model_path': CONFIG.project_root / 'models'/ f'{file_name}.pth',
-        'hyperparameters_path': CONFIG.project_root / f'hyperparameters' / f'{file_name}.json'
+    return {
+        'model_class': MODEL_CLASSES[model_type],
+        'model_path': CONFIG.project_root / 'models' / f'{file_name}.pth',
+        'hyperparameters_path': CONFIG.project_root / 'hyperparameters' / f'{file_name}.json',
     }
-
-    match model_type:
-        case ModelType.CNN:
-            model_specific = {
-                'model_class': CNN,
-                'train_fn': train_one_epoch_cnn,
-                'val_fn': validate_cnn,
-                'benchmark_fn': benchmark_cnn,
-            }
-        case ModelType.SNN_DIRECT:
-            model_specific = {
-                'model_class': SNNDirect,
-                'train_fn': train_one_epoch_snn,
-                'val_fn': validate_snn,
-                'benchmark_fn': benchmark_snn,
-            }
-        case ModelType.SNN:
-            model_specific = {
-                'model_class': SNN,
-                'train_fn': train_one_epoch_snn,
-                'val_fn': validate_snn,
-                'benchmark_fn': benchmark_snn,
-            }
-
-    components.update(model_specific)
-    return components
 
 
 def load_model_hyperparameters(model_type: ModelType, hyperparameters_path: Path) -> dict:
@@ -97,12 +77,12 @@ def compare_models(device, model1_type: ModelType, model2_type: ModelType, datas
     model2.load_state_dict(torch.load(components2['model_path'], map_location=device))
 
     # Benchmark
-    model1_acc, model1_macs, model1_acs = components1['benchmark_fn'](device, model1, dataloader1)
-    model2_acc, model2_macs, model2_acs = components2['benchmark_fn'](device, model2, dataloader2)
+    model1_metrics = benchmark(device, model1, dataloader1)
+    model2_metrics = benchmark(device, model2, dataloader2)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-    plot_accuracy_comparison(ax1, model1_type.value, model1_acc, model2_type.value, model2_acc)
-    plot_energy_comparison(ax2, model1_type.value, model1_macs, model1_acs, model2_type.value, model2_macs, model2_acs)
+    plot_accuracy_comparison(ax1, model1_type.value, model1_metrics['accuracy'], model2_type.value, model2_metrics['accuracy'])
+    plot_energy_comparison(ax2, model1_type.value, model1_metrics['macs'], model2_metrics['acs'], model2_type.value, model2_metrics['macs'], model2_metrics['acs'])
     plt.tight_layout()
     plt.show()
 

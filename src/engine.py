@@ -1,4 +1,5 @@
 import torch
+from sklearn.metrics import f1_score
 from torchinfo import summary
 from tqdm.auto import tqdm
 
@@ -7,12 +8,12 @@ from src.types.model_type import ModelType
 from src.utils.snn_ac_monitor import SNNACMonitor
 
 
-def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
+def train_one_epoch(device, model, criterion, optimizer, train_dataloader) -> dict:
     model.train()
 
     total_loss = 0.0
-    correct = 0
-    total = 0
+    all_preds = []
+    all_labels = []
 
     if CONFIG.show_progress:
         train_dataloader = tqdm(train_dataloader, desc='Training', unit='batches')
@@ -23,28 +24,25 @@ def train_one_epoch_cnn(device, model, criterion, optimizer, train_dataloader) -
 
         optimizer.zero_grad(set_to_none=True)
 
-        outputs = model(inputs)
+        outputs = _forward(model, inputs)
         loss = criterion(outputs, labels)
         loss.backward()
         total_loss += loss.item()
         _, predicted = torch.max(outputs, 1)
-        correct += (predicted == labels).sum().item()
-        total += labels.size(0)
+        all_preds.append(predicted.cpu())
+        all_labels.append(labels.cpu())
 
         optimizer.step()
 
-    avg_loss = total_loss / len(train_dataloader)
-    avg_accuracy = 100 * correct / total
-
-    return avg_loss, avg_accuracy
+    return _compute_metrics(torch.cat(all_preds), torch.cat(all_labels), total_loss)
 
 
-def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float]:
+def validate(device, model, criterion, val_dataloader) -> dict:
     model.eval()
 
     total_loss = 0.0
-    correct = 0
-    total = 0
+    all_preds = []
+    all_labels = []
 
     if CONFIG.show_progress:
         val_dataloader = tqdm(val_dataloader, desc='Validating', unit='batches')
@@ -54,29 +52,32 @@ def validate_cnn(device, model, criterion, val_dataloader) -> tuple[float, float
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 
-            outputs = model(inputs)
+            outputs = _forward(model, inputs)
             loss = criterion(outputs, labels)
             total_loss += loss.item()
             _, predicted = torch.max(outputs, 1)
-            correct += (predicted == labels).sum().item()
-            total += labels.size(0)
+            all_preds.append(predicted.cpu())
+            all_labels.append(labels.cpu())
 
-    avg_loss = total_loss / len(val_dataloader)
-    avg_accuracy = 100 * correct / total
-
-    return avg_loss, avg_accuracy
+    return _compute_metrics(torch.cat(all_preds), torch.cat(all_labels), total_loss)
 
 
-def benchmark_cnn(device, model, test_dataloader) -> tuple[float, int, int]:
-    """Returns a tuple of (accuracy, macs, acs)."""
+def benchmark(device, model, test_dataloader) -> dict:
     model.eval()
 
-    sample_input, _ = next(iter(test_dataloader))
-    input_size = (1, *sample_input.shape[1:])
-    model_stats = summary(model, input_size, device=device, verbose=0)
-    macs = model_stats.total_mult_adds
+    macs = 0
+    snn_ac_monitor = None
+    if model.name == ModelType.CNN:
+        sample_input, _ = next(iter(test_dataloader))
+        input_size = (1, *sample_input.shape[1:])
+        model_stats = summary(model, input_size, device=device, verbose=0)
+        macs = model_stats.total_mult_adds
+    else:
+        snn_ac_monitor = SNNACMonitor(model)
+        snn_ac_monitor.attach()
 
-    correct = 0
+    all_preds = []
+    all_labels = []
     total = 0
 
     if CONFIG.show_progress:
@@ -87,115 +88,49 @@ def benchmark_cnn(device, model, test_dataloader) -> tuple[float, int, int]:
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 
-            outputs = model(inputs)
+            outputs = _forward(model, inputs)
             _, predicted = torch.max(outputs, 1)
-
-            correct += (predicted == labels).sum().item()
+            all_preds.append(predicted.cpu())
+            all_labels.append(labels.cpu())
             total += labels.size(0)
 
-    accuracy = 100 * correct / total
-    return accuracy, macs, 0
+    if model.name == ModelType.CNN:
+        acs = 0
+    else:
+        snn_ac_monitor.remove()
+        macs = _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if model.name == ModelType.SNN_DIRECT else 0
+        total_acs = snn_ac_monitor.get_total_acs()
+        acs = int(total_acs / total)
+
+    metrics = _compute_metrics(torch.cat(all_preds), torch.cat(all_labels))
+    metrics['macs'] = macs
+    metrics['acs'] = acs
+    return metrics
 
 
-def train_one_epoch_snn(device, model, criterion, optimizer, train_dataloader) -> tuple[float, float]:
-    model.train()
-
-    total_loss = 0.0
-    correct = 0
-    total = 0
-
-    if CONFIG.show_progress:
-        train_dataloader = tqdm(train_dataloader, desc='Training', unit='batches')
-
-    for inputs, labels in train_dataloader:
-        inputs = inputs.to(device, non_blocking=True)
-        labels = labels.to(device, non_blocking=True)
-
-        optimizer.zero_grad(set_to_none=True)
-
-        spk_rec = model(inputs)
-        spk_count = spk_rec.sum(dim=0)
-        loss = criterion(spk_count, labels)
-        loss.backward()
-        total_loss += loss.item()
-        _, predicted = torch.max(spk_count, 1)
-        correct += (predicted == labels).sum().item()
-        total += labels.size(0)
-
-        optimizer.step()
-
-    avg_loss = total_loss / len(train_dataloader)
-    avg_accuracy = 100 * correct / total
-
-    return avg_loss, avg_accuracy
+def _forward(model, inputs) -> torch.Tensor:
+    outputs = model(inputs)
+    if model.name != ModelType.CNN:
+        outputs = outputs.sum(dim=0) # Need to sum if an SNN
+    return outputs
 
 
-def validate_snn(device, model, criterion, val_dataloader) -> tuple[float, float]:
-    model.eval()
+def _compute_metrics(all_preds: torch.Tensor, all_labels: torch.Tensor, total_loss: float = None) -> dict:
+    """Returns a dict of loss, accuracy, macro_f1 and weighted_f1."""
+    accuracy = 100 * (all_preds == all_labels).sum().item() / len(all_preds)
+    macro_f1 = f1_score(all_labels, all_preds, average='macro')
+    weighted_f1 = f1_score(all_labels, all_preds, average='weighted')
 
-    total_loss = 0.0
-    correct = 0
-    total = 0
+    metrics = {
+        'accuracy': accuracy,
+        'macro_f1': macro_f1,
+        'weighted_f1': weighted_f1,
+    }
 
-    if CONFIG.show_progress:
-        val_dataloader = tqdm(val_dataloader, desc='Validation', unit='batches')
+    if total_loss is not None:
+        metrics['loss'] = total_loss
 
-    with torch.inference_mode():
-        for inputs, labels in val_dataloader:
-            inputs = inputs.to(device, non_blocking=True)
-            labels = labels.to(device, non_blocking=True)
-
-            spk_rec = model(inputs)
-            spk_count = spk_rec.sum(dim=0)
-            loss = criterion(spk_count, labels)
-            total_loss += loss.item()
-            _, predicted = torch.max(spk_count, 1)
-            correct += (predicted == labels).sum().item()
-            total += labels.size(0)
-
-    avg_loss = total_loss / len(val_dataloader)
-    avg_accuracy = 100 * correct / total
-
-    return avg_loss, avg_accuracy
-
-
-def benchmark_snn(device, model, test_dataloader) -> tuple[float, int, int]:
-    """Returns a tuple of (accuracy, first_layer_macs, avg_acs)."""
-    model.eval()
-
-    snn_ac_monitor = SNNACMonitor(model)
-    snn_ac_monitor.attach()
-
-    correct = 0
-    total = 0
-
-    if CONFIG.show_progress:
-        test_dataloader = tqdm(test_dataloader, desc='Benchmarking', unit='batches')
-
-    with torch.inference_mode():
-        for inputs, labels in test_dataloader:
-            inputs = inputs.to(device, non_blocking=True)
-            labels = labels.to(device, non_blocking=True)
-
-            spk_rec = model(inputs)
-            spk_count = spk_rec.sum(dim=0)
-            _, predicted = torch.max(spk_count, 1)
-
-            correct += (predicted == labels).sum().item()
-            total += labels.size(0)
-
-    snn_ac_monitor.remove()
-
-    accuracy = 100 * correct / total
-
-    # Calculate MACs if direct encoded, skip otherwise
-    total_macs = _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if model.name == ModelType.SNN_DIRECT else 0
-    total_acs = snn_ac_monitor.get_total_acs()
-
-    # Divide by number of samples to get the per inference AC
-    avg_acs_per_inference = int(total_acs / total)
-
-    return accuracy, total_macs, avg_acs_per_inference
+    return metrics
 
 
 def _calculate_conv2d_macs(model, sample_input: torch.Tensor) -> int:

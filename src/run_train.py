@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from torch import nn
 
 from src.config import CONFIG
+from src.engine import train_one_epoch, validate, benchmark
 from src.types.dataset_type import DatasetType
 from src.types.filterbank_type import FilterbankType
 from src.types.model_type import ModelType
@@ -41,25 +42,31 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
     criterion = nn.CrossEntropyLoss(weight=dataset_type.class_weights.to(device))
 
     print(f'Training {model_type.name}...')
-    best_acc = 0.0
+    best_macro_f1 = 0.0
     epochs_without_improvement = 0
     start_time = time.time()
-    train_losses, train_accs = [], []
-    val_losses, val_accs = [], []
+    history = {
+        'train_losses': [], 'train_accs': [], 'train_macro_f1s': [], 'train_weighted_f1s': [],
+        'val_losses': [], 'val_accs': [], 'val_macro_f1s': [], 'val_weighted_f1s': [],
+    }
     for epoch in range(CONFIG.epochs):
         print(f'[Epoch {epoch + 1}/{CONFIG.epochs}]')
         epoch_start = time.time()
 
-        train_loss, train_acc = components['train_fn'](device, model, criterion, optimizer, train_dataloader)
-        train_losses.append(train_loss)
-        train_accs.append(train_acc)
+        train_metrics = train_one_epoch(device, model, criterion, optimizer, train_dataloader)
+        history['train_losses'].append(train_metrics['loss'])
+        history['train_accs'].append(train_metrics['accuracy'])
+        history['train_macro_f1s'].append(train_metrics['macro_f1'])
+        history['train_weighted_f1s'].append(train_metrics['weighted_f1'])
 
-        val_loss, val_acc = components['val_fn'](device, model, criterion, val_dataloader)
-        val_losses.append(val_loss)
-        val_accs.append(val_acc)
+        val_metrics = validate(device, model, criterion, val_dataloader)
+        history['val_losses'].append(val_metrics['loss'])
+        history['val_accs'].append(val_metrics['accuracy'])
+        history['val_macro_f1s'].append(val_metrics['macro_f1'])
+        history['val_weighted_f1s'].append(val_metrics['weighted_f1'])
 
-        if val_acc > best_acc:
-            best_acc = val_acc
+        if val_metrics['macro_f1'] > best_macro_f1:
+            best_macro_f1 = val_metrics['macro_f1']
             torch.save(model.state_dict(), components['model_path'])
             epochs_without_improvement = 0
         else:
@@ -72,19 +79,20 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
         epoch_duration = time.time() - epoch_start
         total_elapsed = time.time() - start_time
 
-        print(f'Train Loss: {train_loss:.2f} | Train Accuracy: {train_acc:.2f}% | Val Loss: {val_loss:.2f} | Val Accuracy: {val_acc:.2f}%')
+        print(f'[Train] Loss: {train_metrics["loss"]:.2f} | Acc: {train_metrics["accuracy"]:.2f}% | Macro-F1: {train_metrics["macro_f1"]:.4f} | Weighted-F1: {train_metrics['weighted_f1']}')
+        print(f'[Val] Loss: {val_metrics["loss"]:.2f} | Acc: {val_metrics["accuracy"]:.2f}% | Macro-F1: {val_metrics["macro_f1"]:.4f} | Weighted-F1: {train_metrics['weighted_f1']}')
         print(f'Epoch Duration: {epoch_duration:.0f}s | Total Time Elapsed: {total_elapsed:.0f}s')
         print()
 
     total_time = time.time() - start_time
     print(f'Training completed in {total_time:.0f}s.')
-    print(f'Best model had an accuracy of {best_acc:.2f}%.')
+    print(f'Best model had a macro-F1 of {best_macro_f1:.4f}.')
 
     # Benchmark
     print(f'Running benchmark on test set...')
     model.load_state_dict(torch.load(components['model_path'], map_location=device))
-    test_acc, macs, acs = components['benchmark_fn'](device, model, test_dataloader)
-    print(f'Test Accuracy: {test_acc:.2f}% | Total MACs: {macs:,} | Total ACs: {acs:,}')
+    test_metrics = benchmark(device, model, test_dataloader)
+    print(f'[Benchmark] Accuracy: {test_metrics["accuracy"]:.2f}% | Macro F1: {test_metrics["macro_f1"]:.4f} | Weighted F1: {test_metrics["weighted_f1"]:.4f} | MACs: {test_metrics['macs']:,} | ACs: {test_metrics['acs']:,}')
 
     return {
         'model': model_type.value,
@@ -92,18 +100,12 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
         'filterbank': filterbank_type.value,
         'device': str(device),
         'training_time': round(total_time, 1),
-        'num_epochs': len(train_losses), # In case we finished early
+        'num_epochs': len(history['train_losses']),
+        'model_config': model_config,
         'hyperparameters': hyperparameters,
-        'best_val_accuracy': best_acc,
-        'benchmark_accuracy': test_acc,
-        'macs': macs,
-        'acs': acs,
-        'epoch_history': {
-            'train_losses': train_losses,
-            'train_accs': train_accs,
-            'val_losses': val_losses,
-            'val_accs': val_accs,
-        }
+        'best_val_macro_f1': best_macro_f1,
+        'benchmark': test_metrics,
+        'epoch_history': history,
     }
 
 
