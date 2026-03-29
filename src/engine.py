@@ -34,7 +34,7 @@ def train_one_epoch(device, model, criterion, optimizer, train_dataloader) -> di
 
         optimizer.step()
 
-    return _compute_metrics(torch.cat(all_preds), torch.cat(all_labels), total_loss)
+    return _compute_metrics(torch.cat(all_preds), torch.cat(all_labels), total_loss, len(train_dataloader))
 
 
 def validate(device, model, criterion, val_dataloader) -> dict:
@@ -59,7 +59,7 @@ def validate(device, model, criterion, val_dataloader) -> dict:
             all_preds.append(predicted.cpu())
             all_labels.append(labels.cpu())
 
-    return _compute_metrics(torch.cat(all_preds), torch.cat(all_labels), total_loss)
+    return _compute_metrics(torch.cat(all_preds), torch.cat(all_labels), total_loss, len(val_dataloader))
 
 
 def benchmark(device, model, test_dataloader) -> dict:
@@ -115,7 +115,7 @@ def _forward(model, inputs) -> torch.Tensor:
     return outputs
 
 
-def _compute_metrics(all_preds: torch.Tensor, all_labels: torch.Tensor, total_loss: float = None) -> dict:
+def _compute_metrics(all_preds: torch.Tensor, all_labels: torch.Tensor, total_loss: float = None, num_batches: int = None) -> dict:
     """Returns a dict of loss, accuracy, macro_f1 and weighted_f1."""
     accuracy = 100 * (all_preds == all_labels).sum().item() / len(all_preds)
     macro_f1 = f1_score(all_labels, all_preds, average='macro')
@@ -128,7 +128,7 @@ def _compute_metrics(all_preds: torch.Tensor, all_labels: torch.Tensor, total_lo
     }
 
     if total_loss is not None:
-        metrics['loss'] = total_loss
+        metrics['loss'] = total_loss / num_batches
 
     return metrics
 
