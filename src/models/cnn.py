@@ -34,10 +34,8 @@ class CNN(nn.Module):
         self.feature_extractor = nn.Sequential(*vgg_blocks)
 
         self.classifier = nn.Sequential(
-            # nn.Flatten(),
-            # nn.Dropout(0.3),
-            nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
+            nn.Dropout(0.5),
             nn.LazyLinear(out_features=num_classes)
         )
 

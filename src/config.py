@@ -29,7 +29,7 @@ class Config:
     project_root = Path(__file__).resolve().parent.parent
     seed: int = 100
     epochs: int = 100
-    patience: int = 10
+    patience: int = 20
     batch_size: int = 256
     show_progress: bool = False
     audiomnist: AudioConfig = AudioConfig(
@@ -43,7 +43,7 @@ class Config:
     )
     oceanship: AudioConfig = AudioConfig(
         original_sample_rate=32_000,
-        target_sample_rate=16_000,
+        target_sample_rate=32_000,
         target_duration=2.0,
         n_fft=1024,
         n_bins=128,
