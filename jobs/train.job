@@ -5,6 +5,7 @@
 #SBATCH -c 8
 #SBATCH --ntasks=1
 #SBATCH --time=1-0
+#SBATCH --output=/dev/null
 
 # Usage: sbatch train.job <model> <dataset> <filterbank>
 set -euo pipefail
