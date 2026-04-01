@@ -20,7 +20,7 @@ class AudioConfig:
 @dataclass(frozen=True)
 class HyperparameterTuningConfig:
     should_run: bool = True
-    epochs: int = 15
+    epochs: int = 5
     trials: int = 20
 
 
@@ -43,10 +43,10 @@ class Config:
     )
     oceanship: AudioConfig = AudioConfig(
         original_sample_rate=32_000,
-        target_sample_rate=32_000,
+        target_sample_rate=16_000,
         target_duration=2.0,
         n_fft=1024,
-        n_bins=128,
+        n_bins=64,
         delta_threshold=0.1,
         excluded_classes={'Search and Rescue vessel', 'Military ship', 'Anti-pollution equipment', 'Dredging'}
     )
