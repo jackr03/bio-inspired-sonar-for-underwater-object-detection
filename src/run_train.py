@@ -24,10 +24,9 @@ warnings.filterwarnings('ignore', category=UserWarning)
 def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType) -> dict:
     components = get_model_components(model_type, dataset_type, filterbank_type)
 
-    # TODO: Only apply to oceanship
     # Load dataset and dataloaders
     dataset = get_dataset(model_type, dataset_type, filterbank_type)
-    train_dataloader, val_dataloader, test_dataloader = get_split_dataloaders(dataset, augment=True)
+    train_dataloader, val_dataloader, test_dataloader = get_split_dataloaders(dataset, dataset_type)
 
     # Load model parameters
     model_config = dataset_type.get_model_config(model_type)

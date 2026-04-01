@@ -60,8 +60,8 @@ def compare_models(device, model1_type: ModelType, model2_type: ModelType, datas
     dataset2 = get_dataset(model2_type, dataset_type, filterbank2_type)
 
     # Use the same seed for split so that models are tested on exact same things
-    _, _, dataloader1 = get_split_dataloaders(dataset1)
-    _, _, dataloader2 = get_split_dataloaders(dataset2)
+    _, _, dataloader1 = get_split_dataloaders(dataset1, dataset_type)
+    _, _, dataloader2 = get_split_dataloaders(dataset2, dataset_type)
 
     _, sample_labels1 = next(iter(dataloader1))
     _, sample_labels2 = next(iter(dataloader2))

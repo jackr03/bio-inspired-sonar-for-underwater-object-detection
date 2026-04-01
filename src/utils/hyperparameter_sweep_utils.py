@@ -19,7 +19,7 @@ def run_hyperparameter_sweep(device, model_type: ModelType, dataset_type: Datase
     model_config = dataset_type.get_model_config(model_type)
 
     dataset = get_dataset(model_type, dataset_type, filterbank_type)
-    train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset, augment=True)
+    train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset, dataset_type)
 
     def objective(trial) -> float | tuple[float, int]:
         hyperparameters = get_hyperparameter_suggestions(trial, model_type)

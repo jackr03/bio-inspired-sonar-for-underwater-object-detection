@@ -1,10 +1,9 @@
-import torch
 import torchaudio
 from torch.utils.data import Dataset
 
 
 class AugmentedSubset(Dataset):
-    def __init__(self, subset):
+    def __init__(self, subset: Dataset):
         self.subset = subset
         self.freq_mask = torchaudio.transforms.FrequencyMasking(freq_mask_param=5)
         self.time_mask = torchaudio.transforms.TimeMasking(time_mask_param=5)
