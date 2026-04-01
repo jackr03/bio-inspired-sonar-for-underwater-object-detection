@@ -1,6 +1,4 @@
-import csv
 import os
-import random
 from collections import Counter
 from enum import Enum
 from functools import cached_property
@@ -15,7 +13,6 @@ from src.types.model_type import ModelType
 
 class DatasetType(str, Enum):
     AUDIOMNIST = 'audiomnist'
-    OCEANSHIP = 'oceanship'
     SHIPSEAR = 'shipsear'
 
     @property
@@ -23,8 +20,6 @@ class DatasetType(str, Enum):
         match self:
             case DatasetType.AUDIOMNIST:
                 return CONFIG.audiomnist
-            case DatasetType.OCEANSHIP:
-                return CONFIG.oceanship
             case DatasetType.SHIPSEAR:
                 return CONFIG.shipsear
 
@@ -45,34 +40,11 @@ class DatasetType(str, Enum):
 
     @cached_property
     def label_map(self) -> dict[str, int]:
-        """Maps file stem to label ID, excluding classes specified in config."""
+        """Maps file stem to label ID."""
         match self:
             case DatasetType.AUDIOMNIST | DatasetType.SHIPSEAR:
                 audio_files = list(self.input_dir.rglob('*.wav'))
                 return {file.stem: int(file.stem.split('_')[0]) for file in audio_files}
-            case DatasetType.OCEANSHIP:
-                train_csv = self.input_dir / 'oceanship_full_train.csv'
-                test_csv = self.input_dir / 'oceanship_full_test.csv'
-                excluded = self.config.excluded_classes
-
-                # Build CSV stem → label mapping
-                csv_labels = {}
-                for csv_path in [train_csv, test_csv]:
-                    with open(csv_path, 'r') as f:
-                        reader = csv.DictReader(f)
-                        for row in reader:
-                            key = Path(row['wav_path']).stem
-                            label = row['label']
-                            if label not in excluded:
-                                csv_labels[key] = label
-
-                # Filter to only include files that we have a corresponding .wav file for
-                wav_stems = {f.stem for f in self.input_dir.rglob('*.wav')}
-                file_to_label = {stem: label for stem, label in csv_labels.items() if stem in wav_stems}
-
-                unique_classes = sorted(set(file_to_label.values()))
-                label_to_id = {label: i for i, label in enumerate(unique_classes)}
-                return {stem: label_to_id[label] for stem, label in file_to_label.items()}
 
     @property
     def num_classes(self) -> int:
@@ -91,16 +63,10 @@ class DatasetType(str, Enum):
             weights[label_id] = total / (self.num_classes * count)
         return weights
 
-    def get_random_encoded_file(self, filterbank: FilterbankType) -> Path:
-        files = list(self.get_spike_dir(filterbank).rglob('*pt'))
-        return random.choice(files)
-
     def get_model_config(self, model: ModelType) -> dict:
         match self:
             case DatasetType.AUDIOMNIST:
                 channels = [8, 16]
-            case DatasetType.OCEANSHIP:
-                channels = [32, 64, 128]
             case DatasetType.SHIPSEAR:
                 channels = [16, 32]
 

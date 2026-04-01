@@ -9,10 +9,8 @@ class VGGBlock(nn.Module):
 
         self.block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_channels),
             nn.ReLU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_channels),
             nn.ReLU()
         )
         self.pool = nn.MaxPool2d(kernel_size=2)
@@ -23,7 +21,7 @@ class VGGBlock(nn.Module):
 
 
 class CNN(nn.Module):
-    def __init__(self, in_channels: int, num_classes: int, channels: list[int]):
+    def __init__(self, in_channels: int, num_classes: int, channels: list[int], dropout: float):
         super().__init__()
 
         vgg_blocks = []
@@ -34,8 +32,9 @@ class CNN(nn.Module):
         self.feature_extractor = nn.Sequential(*vgg_blocks)
 
         self.classifier = nn.Sequential(
+            nn.AvgPool2d(kernel_size=2, stride=2),
             nn.Flatten(),
-            nn.Dropout(0.5),
+            nn.Dropout(dropout),
             nn.LazyLinear(out_features=num_classes)
         )
 

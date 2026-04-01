@@ -9,6 +9,7 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
 from src.config import CONFIG
@@ -45,8 +46,9 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
     print()
 
     model = components['model_class'](**model_params).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=hyperparameters['lr'])
     criterion = nn.CrossEntropyLoss(weight=dataset_type.class_weights.to(device))
+    optimizer = torch.optim.AdamW(model.parameters(), lr=hyperparameters['lr'], weight_decay=hyperparameters['weight_decay'])
+    scheduler = ReduceLROnPlateau(optimizer=optimizer, mode='max', factor=0.5, patience=5)
 
     print(f'Training {model_type.name}...')
     best_macro_f1 = 0.0
@@ -71,6 +73,8 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
         history['val_accs'].append(val_metrics['accuracy'])
         history['val_macro_f1s'].append(val_metrics['macro_f1'])
         history['val_weighted_f1s'].append(val_metrics['weighted_f1'])
+
+        scheduler.step(val_metrics['macro_f1'])
 
         if val_metrics['macro_f1'] > best_macro_f1:
             best_macro_f1 = val_metrics['macro_f1']

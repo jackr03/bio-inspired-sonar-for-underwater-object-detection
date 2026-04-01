@@ -11,8 +11,7 @@ from src.types.filterbank_type import FilterbankType
 class SpikeDataset(Dataset):
     def __init__(self, dataset: DatasetType, filterbank: FilterbankType) -> None:
         spike_dir = dataset.get_spike_dir(filterbank)
-        all_files = sorted(spike_dir.rglob('*.pt'), key=lambda x: x.stem)
-        files = [file for file in all_files if file.stem in dataset.label_map]
+        files = sorted(spike_dir.rglob('*.pt'), key=lambda x: x.stem)
 
         print(f'Loading {len(files)} spikes...')
         start_time = time.time()

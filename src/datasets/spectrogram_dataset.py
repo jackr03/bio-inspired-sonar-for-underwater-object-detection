@@ -12,7 +12,6 @@ class SpectrogramDataset(Dataset):
     def __init__(self, dataset: DatasetType, filterbank: FilterbankType):
         spectrogram_dir = dataset.get_spectrogram_dir(filterbank)
         files = sorted(spectrogram_dir.rglob('*.pt'), key=lambda x: x.stem)
-        # files = [file for file in all_files if file.stem in dataset.label_map]
 
         print(f'Loading {len(files)} spectrograms...')
         start_time = time.time()

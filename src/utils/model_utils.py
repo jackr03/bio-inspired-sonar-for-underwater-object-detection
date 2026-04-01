@@ -32,24 +32,15 @@ def get_model_components(model_type: ModelType, dataset_type: DatasetType, filte
 
 
 def load_model_hyperparameters(model_type: ModelType, hyperparameters_path: Path) -> dict:
-    MODEL_INIT_KEYS = {'beta_init', 'slope', 'timesteps'}
-
     with open(hyperparameters_path, 'r') as f:
         data = json.load(f)
 
     match model_type:
         case ModelType.CNN | ModelType.SNN:
-            flat_params = data
+            return data
         case ModelType.SNN_DIRECT:
-            # Choose lowest timesteps
-            flat_params = data[1]['params']
-
-    model_init = {k: v for k, v in flat_params.items() if k in MODEL_INIT_KEYS}
-
-    return {
-        'lr': flat_params['lr'],
-        'model_init': model_init
-    }
+            # Choose lowest timesteps from Pareto front
+            return data[1]['params']
 
 
 def compare_models(device, model1_type: ModelType, model2_type: ModelType, dataset_type: DatasetType, filterbank1_type: FilterbankType, filterbank2_type: FilterbankType):
