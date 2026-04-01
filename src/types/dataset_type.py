@@ -1,10 +1,10 @@
 import csv
+import os
 import random
 from collections import Counter
 from enum import Enum
 from functools import cached_property
 from pathlib import Path
-import os
 
 import torch
 
@@ -16,6 +16,7 @@ from src.types.model_type import ModelType
 class DatasetType(str, Enum):
     AUDIOMNIST = 'audiomnist'
     OCEANSHIP = 'oceanship'
+    SHIPSEAR = 'shipsear'
 
     @property
     def config(self) -> AudioConfig:
@@ -24,6 +25,8 @@ class DatasetType(str, Enum):
                 return CONFIG.audiomnist
             case DatasetType.OCEANSHIP:
                 return CONFIG.oceanship
+            case DatasetType.SHIPSEAR:
+                return CONFIG.shipsear
 
     @property
     def input_dir(self) -> Path:
@@ -44,7 +47,7 @@ class DatasetType(str, Enum):
     def label_map(self) -> dict[str, int]:
         """Maps file stem to label ID, excluding classes specified in config."""
         match self:
-            case DatasetType.AUDIOMNIST:
+            case DatasetType.AUDIOMNIST | DatasetType.SHIPSEAR:
                 audio_files = list(self.input_dir.rglob('*.wav'))
                 return {file.stem: int(file.stem.split('_')[0]) for file in audio_files}
             case DatasetType.OCEANSHIP:
@@ -73,7 +76,11 @@ class DatasetType(str, Enum):
 
     @property
     def num_classes(self) -> int:
-        return len(set(self.label_map.values()))
+        match self:
+            case DatasetType.AUDIOMNIST:
+                return 10
+            case DatasetType.SHIPSEAR:
+                return 5
 
     @cached_property
     def class_weights(self) -> torch.Tensor:
@@ -94,6 +101,8 @@ class DatasetType(str, Enum):
                 channels = [8, 16]
             case DatasetType.OCEANSHIP:
                 channels = [32, 64, 128]
+            case DatasetType.SHIPSEAR:
+                channels = [16, 32]
 
         match model:
             case ModelType.CNN | ModelType.SNN_DIRECT:

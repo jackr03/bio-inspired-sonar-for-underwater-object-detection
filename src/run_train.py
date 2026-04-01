@@ -5,28 +5,35 @@ import warnings
 from pathlib import Path
 
 import matplotlib
+import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
+from torch.utils.data import DataLoader
 
 from src.config import CONFIG
 from src.engine import train_one_epoch, validate, benchmark
 from src.types.dataset_type import DatasetType
 from src.types.filterbank_type import FilterbankType
 from src.types.model_type import ModelType
-from src.utils.dataset_utils import get_dataset, get_split_dataloaders
+from src.utils.dataset_utils import get_dataset, get_split_dataloaders, get_kfold_dataloaders
 from src.utils.hyperparameter_sweep_utils import run_hyperparameter_sweep
 from src.utils.model_utils import get_model_components, load_model_hyperparameters
 from src.utils.plotting_utils import plot_training_history
 
 warnings.filterwarnings('ignore', category=UserWarning)
 
-def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType) -> dict:
+
+def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType,
+                        dataloaders: tuple[DataLoader, DataLoader, DataLoader] = None) -> dict:
     components = get_model_components(model_type, dataset_type, filterbank_type)
 
     # Load dataset and dataloaders
-    dataset = get_dataset(model_type, dataset_type, filterbank_type)
-    train_dataloader, val_dataloader, test_dataloader = get_split_dataloaders(dataset, dataset_type)
+    if dataloaders is None:
+        dataset = get_dataset(model_type, dataset_type, filterbank_type)
+        train_dataloader, val_dataloader, test_dataloader = get_split_dataloaders(dataset, dataset_type)
+    else:
+        train_dataloader, val_dataloader, test_dataloader = dataloaders
 
     # Load model parameters
     model_config = dataset_type.get_model_config(model_type)
@@ -113,6 +120,43 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
     }
 
 
+def train_and_benchmark_kfold(device, model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType) -> dict:
+    dataset = get_dataset(model_type, dataset_type, filterbank_type)
+    folds = get_kfold_dataloaders(dataset, dataset_type)
+
+    fold_results = []
+    for i, dataloaders in enumerate(folds):
+        print(f'\n{"="*60}')
+        print(f'Fold {i + 1}/{len(folds)}')
+        print(f'{"="*60}\n')
+        result = train_and_benchmark(device, model_type, dataset_type, filterbank_type, dataloaders=dataloaders)
+        fold_results.append(result)
+
+    # Aggregate benchmark metrics across folds
+    metric_keys = ['accuracy', 'macro_f1', 'macro_precision', 'macro_recall', 'weighted_f1', 'weighted_precision', 'weighted_recall']
+    aggregate = {}
+    for key in metric_keys:
+        values = [r['benchmark'][key] for r in fold_results]
+        aggregate[key] = {'mean': float(np.mean(values)), 'std': float(np.std(values))}
+
+    print(f'\n{"="*60}')
+    print(f'K-Fold Results (mean ± std across {len(folds)} folds)')
+    print(f'{"="*60}')
+    print(f' Accuracy: {aggregate["accuracy"]["mean"]:.2f}% ± {aggregate["accuracy"]["std"]:.2f}%')
+    print(f'  Macro    — F1: {aggregate["macro_f1"]["mean"]:.4f} ± {aggregate["macro_f1"]["std"]:.4f}')
+    print(f'  Weighted — F1: {aggregate["weighted_f1"]["mean"]:.4f} ± {aggregate["weighted_f1"]["std"]:.4f}')
+
+    return {
+        'model': model_type.value,
+        'dataset': dataset_type.value,
+        'filterbank': filterbank_type.value,
+        'device': str(device),
+        'n_folds': len(folds),
+        'aggregate': aggregate,
+        'folds': fold_results,
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Training Entry Point')
     parser.add_argument('--model', type=ModelType, choices=list(ModelType), required=True)
@@ -153,7 +197,10 @@ def main():
         print('Skipping hyperparameter sweep.')
 
     # Train and benchmark
-    results = train_and_benchmark(device, model_type, dataset_type, filterbank_type)
+    if dataset_type == DatasetType.SHIPSEAR:
+        results = train_and_benchmark_kfold(device, model_type, dataset_type, filterbank_type)
+    else:
+        results = train_and_benchmark(device, model_type, dataset_type, filterbank_type)
 
     # Save results
     with open(results_path, 'w') as f:
@@ -161,9 +208,15 @@ def main():
     print(f'Results saved to {results_path}')
 
     matplotlib.use('Agg')
-    plot_training_history(**results['epoch_history'])
-    plt.savefig(training_history_path, dpi=150, bbox_inches='tight')
-    plt.close()
+    if dataset_type == DatasetType.SHIPSEAR:
+        for i, fold in enumerate(results['folds']):
+            plot_training_history(**fold['epoch_history'])
+            plt.savefig(run_dir / f'training_history_fold_{i + 1}.png', dpi=150, bbox_inches='tight')
+            plt.close()
+    else:
+        plot_training_history(**results['epoch_history'])
+        plt.savefig(training_history_path, dpi=150, bbox_inches='tight')
+        plt.close()
 
 
 if __name__ == '__main__':

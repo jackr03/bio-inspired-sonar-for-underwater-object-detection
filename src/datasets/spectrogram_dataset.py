@@ -11,8 +11,8 @@ from src.types.filterbank_type import FilterbankType
 class SpectrogramDataset(Dataset):
     def __init__(self, dataset: DatasetType, filterbank: FilterbankType):
         spectrogram_dir = dataset.get_spectrogram_dir(filterbank)
-        all_files = sorted(spectrogram_dir.rglob('*.pt'), key=lambda x: x.stem)
-        files = [file for file in all_files if file.stem in dataset.label_map]
+        files = sorted(spectrogram_dir.rglob('*.pt'), key=lambda x: x.stem)
+        # files = [file for file in all_files if file.stem in dataset.label_map]
 
         print(f'Loading {len(files)} spectrograms...')
         start_time = time.time()
@@ -23,7 +23,8 @@ class SpectrogramDataset(Dataset):
         print(f'Finished loading spectrograms.')
         print(f'Time taken: {time.time() - start_time:.0f} seconds')
 
-        self.labels = [dataset.label_map[file.stem] for file in files]
+        self.stems = [file.stem for file in files]
+        self.labels = [dataset.label_map[stem] for stem in self.stems]
 
     def __len__(self) -> int:
         return len(self.spectrograms)

@@ -31,7 +31,8 @@ class SpikeDataset(Dataset):
         print(f'Finished loading spikes.')
         print(f'Time taken: {time.time() - start_time:.0f} seconds')
 
-        self.labels = [dataset.label_map[file.stem] for file in files]
+        self.stems = [file.stem for file in files]
+        self.labels = [dataset.label_map[stem] for stem in self.stems]
 
     def __len__(self) -> int:
         return len(self.spikes)

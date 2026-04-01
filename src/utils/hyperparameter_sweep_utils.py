@@ -10,7 +10,7 @@ from src.engine import train_one_epoch, validate
 from src.types.dataset_type import DatasetType
 from src.types.filterbank_type import FilterbankType
 from src.types.model_type import ModelType
-from src.utils.dataset_utils import get_dataset, get_split_dataloaders
+from src.utils.dataset_utils import get_dataset, get_split_dataloaders, get_kfold_dataloaders
 from src.utils.model_utils import get_model_components
 
 
@@ -19,7 +19,10 @@ def run_hyperparameter_sweep(device, model_type: ModelType, dataset_type: Datase
     model_config = dataset_type.get_model_config(model_type)
 
     dataset = get_dataset(model_type, dataset_type, filterbank_type)
-    train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset, dataset_type)
+    if dataset_type == DatasetType.SHIPSEAR:
+        train_dataloader, val_dataloader, _ = get_kfold_dataloaders(dataset, dataset_type)[0]
+    else:
+        train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset, dataset_type)
 
     def objective(trial) -> float | tuple[float, int]:
         hyperparameters = get_hyperparameter_suggestions(trial, model_type)
