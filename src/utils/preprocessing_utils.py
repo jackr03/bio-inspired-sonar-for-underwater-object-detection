@@ -12,6 +12,7 @@ from src.types.filterbank_type import FilterbankType
 
 class DurationNormaliser(nn.Module):
     """Normalises audio duration by truncating / padding to the desired length."""
+
     def __init__(self, target_samples: int):
         super().__init__()
         self.target_samples = target_samples
@@ -21,7 +22,7 @@ class DurationNormaliser(nn.Module):
         num_samples = x.shape[1]
 
         if num_samples > self.target_samples:
-            x = x[:, :self.target_samples]
+            x = x[:, : self.target_samples]
         elif num_samples < self.target_samples:
             padding_needed = self.target_samples - num_samples
             x = nn.functional.pad(x, (0, padding_needed))
@@ -31,6 +32,7 @@ class DurationNormaliser(nn.Module):
 
 class MinMaxScaler(nn.Module):
     """Clamps decibel values between the max and min values provided before normalising to return a value in [0, 1]."""
+
     def __init__(self, min_val=-80.0, max_val=0.0):
         super().__init__()
         self.min_val = min_val
@@ -41,7 +43,10 @@ class MinMaxScaler(nn.Module):
         return (x - self.min_val) / (self.max_val - self.min_val)
 
 
-def get_filterbank(config: AudioConfig, filterbank_type: FilterbankType, ) -> nn.Module:
+def get_filterbank(
+    config: AudioConfig,
+    filterbank_type: FilterbankType,
+) -> nn.Module:
     match filterbank_type:
         case FilterbankType.MEL:
             return torchaudio.transforms.MelSpectrogram(
@@ -50,7 +55,7 @@ def get_filterbank(config: AudioConfig, filterbank_type: FilterbankType, ) -> nn
                 n_mels=config.n_bins,
                 pad_mode='constant',
                 norm='slaney',
-                mel_scale='slaney'
+                mel_scale='slaney',
             )
         case FilterbankType.GAMMATONE:
             return Gammatonegram(
@@ -69,10 +74,7 @@ def get_waveform_transformer(config: AudioConfig) -> nn.Module:
     2. Normalises audio duration by truncating / padding
     """
     return nn.Sequential(
-        torchaudio.transforms.Resample(
-            orig_freq=config.original_sample_rate,
-            new_freq=config.target_sample_rate
-        ),
+        torchaudio.transforms.Resample(orig_freq=config.original_sample_rate, new_freq=config.target_sample_rate),
         DurationNormaliser(target_samples=config.target_samples),
     )
 
@@ -83,10 +85,7 @@ def get_spectrogram_transformer(config: AudioConfig, filterbank: FilterbankType)
     1. Converts the waveform to a Mel Spectrogram / Gammatone Spectrogram
     2. Performs log-scaling by dB
     """
-    return nn.Sequential(
-        get_filterbank(config, filterbank),
-        torchaudio.transforms.AmplitudeToDB()
-    )
+    return nn.Sequential(get_filterbank(config, filterbank), torchaudio.transforms.AmplitudeToDB())
 
 
 def get_cnn_pipeline(config: AudioConfig, filterbank: FilterbankType) -> nn.Module:
@@ -105,7 +104,7 @@ def get_snn_pipeline(config: AudioConfig, filterbank: FilterbankType) -> nn.Modu
     return nn.Sequential(
         get_waveform_transformer(config),
         get_spectrogram_transformer(config, filterbank),
-        MinMaxScaler()
+        MinMaxScaler(),
     )
 
 

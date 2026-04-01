@@ -27,8 +27,18 @@ class VGGBlock(nn.Module):
     def init_leaky(self) -> tuple[Tensor, Tensor]:
         return self.lif1.init_leaky(), self.lif2.init_leaky()
 
+
 class SNNDirect(nn.Module):
-    def __init__(self, in_channels: int, num_classes: int, channels: list[int], beta_init: float, slope: int, timesteps: int):
+    def __init__(
+        self,
+        in_channels: int,
+        num_classes: int,
+        channels: list[int],
+        dropout: float,
+        beta_init: float,
+        slope: int,
+        timesteps: int,
+    ):
         super().__init__()
 
         self.timesteps = timesteps
@@ -41,9 +51,10 @@ class SNNDirect(nn.Module):
             in_channels = out_channels
 
         self.classifier = nn.Sequential(
+            nn.AvgPool2d(kernel_size=2, stride=2),
             nn.Flatten(),
-            nn.Dropout(0.3),
-            nn.LazyLinear(out_features=num_classes)
+            nn.Dropout(dropout),
+            nn.LazyLinear(out_features=num_classes),
         )
 
         beta = torch.ones(num_classes) * beta_init

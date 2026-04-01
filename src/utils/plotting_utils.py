@@ -5,7 +5,10 @@ MAC_ENERGY_PJ = 3.7 + 0.9
 AC_ENERGY_PJ = 0.9
 
 
-def visualise_spikes(file_name: str, spike_tensor: torch.Tensor, ) -> None:
+def visualise_spikes(
+    file_name: str,
+    spike_tensor: torch.Tensor,
+) -> None:
     spikes = spike_tensor.squeeze(1).detach().cpu().numpy()
     time_steps, bins = spikes.shape
 
@@ -25,9 +28,13 @@ def visualise_spikes(file_name: str, spike_tensor: torch.Tensor, ) -> None:
     plt.show()
 
 
-def plot_training_history(train_losses: list[float], val_losses: list[float],
-                          train_macro_f1s: list[float], val_macro_f1s: list[float],
-                          **_kwargs) -> None:
+def plot_training_history(
+    train_losses: list[float],
+    val_losses: list[float],
+    train_macro_f1s: list[float],
+    val_macro_f1s: list[float],
+    **_kwargs,
+) -> None:
     epochs = range(1, len(train_losses) + 1)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 8), sharex=True)
@@ -64,7 +71,15 @@ def plot_accuracy_comparison(ax, model1_name: str, model1_acc: float, model2_nam
     ax.set_ylim(0, 100)
 
 
-def plot_energy_comparison(ax, model1_name: str, model1_macs: int, model1_acs: int, model2_name: str, model2_macs: int, model2_acs: int) -> None:
+def plot_energy_comparison(
+    ax,
+    model1_name: str,
+    model1_macs: int,
+    model1_acs: int,
+    model2_name: str,
+    model2_macs: int,
+    model2_acs: int,
+) -> None:
     energy1 = _estimate_energy(model1_macs, model1_acs)
     energy2 = _estimate_energy(model2_macs, model2_acs)
 
@@ -73,7 +88,14 @@ def plot_energy_comparison(ax, model1_name: str, model1_macs: int, model1_acs: i
     ac_energies = [energy1['ac_uJ'], energy2['ac_uJ']]
 
     bars_mac = ax.bar(models, mac_energies, color='#6A4C93', width=0.5, label='MACs')
-    bars_ac = ax.bar(models, ac_energies, color='#1982C4', width=0.5, bottom=mac_energies, label='ACs')
+    bars_ac = ax.bar(
+        models,
+        ac_energies,
+        color='#1982C4',
+        width=0.5,
+        bottom=mac_energies,
+        label='ACs',
+    )
 
     totals = [m + a for m, a in zip(mac_energies, ac_energies)]
     ax.bar_label(bars_ac, labels=[f'{t:.2f} µJ' for t in totals], padding=4)

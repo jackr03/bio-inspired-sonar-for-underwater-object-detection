@@ -1,14 +1,231 @@
+import time
+
+import numpy as np
 import torch
 from sklearn.metrics import classification_report
+from torch import nn
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import DataLoader
 from torchinfo import summary
 from tqdm.auto import tqdm
 
 from src.config import CONFIG
+from src.types.dataset_type import DatasetType
+from src.types.filterbank_type import FilterbankType
 from src.types.model_type import ModelType
+from src.utils.dataset_utils import (
+    get_dataset,
+    get_split_dataloaders,
+    get_kfold_dataloaders,
+)
+from src.utils.model_utils import get_model_components, load_model_hyperparameters
 from src.utils.snn_ac_monitor import SNNACMonitor
 
 
-def train_one_epoch(device, model, criterion, optimizer, train_dataloader) -> dict:
+def train(
+    device,
+    model_type: ModelType,
+    dataset_type: DatasetType,
+    filterbank_type: FilterbankType,
+    dataloaders: tuple[DataLoader, DataLoader, DataLoader] = None,
+) -> dict:
+    components = get_model_components(model_type, dataset_type, filterbank_type)
+
+    if dataloaders is None:
+        dataset = get_dataset(model_type, dataset_type, filterbank_type)
+        train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset)
+    else:
+        train_dataloader, val_dataloader, _ = dataloaders
+
+    # Load model parameters
+    model_config = dataset_type.get_model_config(model_type)
+    hyperparameters = load_model_hyperparameters(model_type, components['hyperparameters_path'])
+
+    # Combine into one for easier use
+    model_params = {
+        **model_config,
+        **hyperparameters['model_init'],
+    }
+
+    print(f'Model Config: {model_config}')
+    print(f'Hyperparameters used: {hyperparameters}')
+
+    model = components['model_class'](**model_params).to(device)
+    criterion = nn.CrossEntropyLoss(weight=dataset_type.class_weights.to(device))
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=hyperparameters['lr'],
+        weight_decay=hyperparameters['weight_decay'],
+    )
+    scheduler = ReduceLROnPlateau(optimizer=optimizer, mode='max', factor=0.5, patience=5)
+
+    print(f'Training {model_type.name}...')
+    best_macro_f1 = 0.0
+    epochs_without_improvement = 0
+    history = {
+        'train_losses': [],
+        'train_accs': [],
+        'train_macro_f1s': [],
+        'train_weighted_f1s': [],
+        'val_losses': [],
+        'val_accs': [],
+        'val_macro_f1s': [],
+        'val_weighted_f1s': [],
+    }
+    start_time = time.time()
+    for epoch in range(CONFIG.epochs):
+        print(f'[Epoch {epoch + 1}/{CONFIG.epochs}]')
+        epoch_start = time.time()
+
+        train_metrics = train_one_epoch(device, model, criterion, optimizer, train_dataloader)
+        history['train_losses'].append(train_metrics['loss'])
+        history['train_accs'].append(train_metrics['accuracy'])
+        history['train_macro_f1s'].append(train_metrics['macro_f1'])
+        history['train_weighted_f1s'].append(train_metrics['weighted_f1'])
+
+        val_metrics = validate(device, model, criterion, val_dataloader)
+        history['val_losses'].append(val_metrics['loss'])
+        history['val_accs'].append(val_metrics['accuracy'])
+        history['val_macro_f1s'].append(val_metrics['macro_f1'])
+        history['val_weighted_f1s'].append(val_metrics['weighted_f1'])
+
+        scheduler.step(val_metrics['macro_f1'])
+
+        if val_metrics['macro_f1'] > best_macro_f1:
+            best_macro_f1 = val_metrics['macro_f1']
+            torch.save(model.state_dict(), components['model_path'])
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
+
+        if epochs_without_improvement == CONFIG.patience:
+            print(f'Stopping early at epoch {epoch + 1} (no improvement for {CONFIG.patience} epochs)')
+            break
+
+        epoch_duration = time.time() - epoch_start
+        total_elapsed = time.time() - start_time
+
+        print(
+            f'[Train] Loss: {train_metrics["loss"]:.2f} | Acc: {train_metrics["accuracy"]:.2f}% | Macro-F1: {train_metrics["macro_f1"]:.4f} | Weighted-F1: {train_metrics["weighted_f1"]:.4f}'
+        )
+        print(
+            f'[Val] Loss: {val_metrics["loss"]:.2f} | Acc: {val_metrics["accuracy"]:.2f}% | Macro-F1: {val_metrics["macro_f1"]:.4f} | Weighted-F1: {val_metrics["weighted_f1"]:.4f}'
+        )
+        print(f'Epoch Duration: {epoch_duration:.0f}s | Total Time Elapsed: {total_elapsed:.0f}s')
+        print()
+
+    total_time = time.time() - start_time
+    print(f'Training completed in {total_time:.0f}s.')
+    print(f'Best model had a macro-F1 of {best_macro_f1:.4f}.')
+
+    return {
+        'training_time': round(total_time, 1),
+        'num_epochs': len(history['train_losses']),
+        'model_config': model_config,
+        'hyperparameters': hyperparameters,
+        'best_val_macro_f1': best_macro_f1,
+        'epoch_history': history,
+    }
+
+
+def train_kfold(
+    device,
+    model_type: ModelType,
+    dataset_type: DatasetType,
+    filterbank_type: FilterbankType,
+) -> dict:
+    dataset = get_dataset(model_type, dataset_type, filterbank_type)
+    folds = get_kfold_dataloaders(dataset, dataset_type)
+
+    components = get_model_components(model_type, dataset_type, filterbank_type)
+
+    fold_results = []
+    for i, dataloaders in enumerate(folds):
+        print(f'\n{"=" * 60}')
+        print(f'Fold {i + 1}/{len(folds)}')
+        print(f'{"=" * 60}\n')
+        train_result = train(device, model_type, dataset_type, filterbank_type, dataloaders=dataloaders)
+
+        # Load best model from this fold and benchmark on fold's test set
+        _, _, test_dataloader = dataloaders
+        model_config = dataset_type.get_model_config(model_type)
+        hyperparameters = train_result['hyperparameters']
+        model = components['model_class'](**{**model_config, **hyperparameters['model_init']}).to(device)
+        model.load_state_dict(torch.load(components['model_path'], map_location=device, weights_only=True))
+        benchmark_result = benchmark(device, model, test_dataloader)
+
+        fold_results.append({**train_result, 'benchmark': benchmark_result})
+
+    # Aggregate benchmark metrics across folds
+    metric_keys = [
+        'accuracy',
+        'macro_f1',
+        'macro_precision',
+        'macro_recall',
+        'weighted_f1',
+        'weighted_precision',
+        'weighted_recall',
+    ]
+    aggregate = {}
+    for key in metric_keys:
+        values = [result['benchmark'][key] for result in fold_results]
+        aggregate[key] = {'mean': float(np.mean(values)), 'std': float(np.std(values))}
+
+    print(f'\n{"=" * 60}')
+    print(f'K-Fold Results (mean ± std across {len(folds)} folds)')
+    print(f'{"=" * 60}')
+    print(f' Accuracy: {aggregate["accuracy"]["mean"]:.2f}% ± {aggregate["accuracy"]["std"]:.2f}%')
+    print(f'  Macro    — F1: {aggregate["macro_f1"]["mean"]:.4f} ± {aggregate["macro_f1"]["std"]:.4f}')
+    print(f'  Weighted — F1: {aggregate["weighted_f1"]["mean"]:.4f} ± {aggregate["weighted_f1"]["std"]:.4f}')
+
+    return {
+        'model': model_type.value,
+        'dataset': dataset_type.value,
+        'filterbank': filterbank_type.value,
+        'device': str(device),
+        'n_folds': len(folds),
+        'aggregate': aggregate,
+        'folds': fold_results,
+    }
+
+
+def load_and_benchmark(
+    device,
+    model_type: ModelType,
+    dataset_type: DatasetType,
+    filterbank_type: FilterbankType,
+) -> dict:
+    components = get_model_components(model_type, dataset_type, filterbank_type)
+    dataset = get_dataset(model_type, dataset_type, filterbank_type)
+    _, _, test_dataloader = get_split_dataloaders(dataset)
+
+    model_config = dataset_type.get_model_config(model_type)
+    model = components['model_class'](**model_config).to(device)
+    model.load_state_dict(torch.load(components['model_path'], map_location=device))
+
+    print('Running benchmark on test set...')
+    test_metrics = benchmark(device, model, test_dataloader)
+    print('[Benchmark Results]')
+    print(f' Accuracy: {test_metrics["accuracy"]:.2f}%')
+    print(
+        f'  Macro    — F1: {test_metrics["macro_f1"]:.4f} | Precision: {test_metrics["macro_precision"]:.4f} | Recall: {test_metrics["macro_recall"]:.4f}'
+    )
+    print(
+        f'  Weighted — F1: {test_metrics["weighted_f1"]:.4f} | Precision: {test_metrics["weighted_precision"]:.4f} | Recall: {test_metrics["weighted_recall"]:.4f}'
+    )
+    print(f'  MACs: {test_metrics["macs"]:,} | ACs: {test_metrics["acs"]:,}')
+
+    return {
+        'model': model_type.value,
+        'dataset': dataset_type.value,
+        'filterbank': filterbank_type.value,
+        'device': str(device),
+        'model_config': model_config,
+        'benchmark': test_metrics,
+    }
+
+
+def train_one_epoch(device, model, criterion, optimizer, train_dataloader: DataLoader) -> dict:
     model.train()
 
     total_loss = 0.0
@@ -37,7 +254,7 @@ def train_one_epoch(device, model, criterion, optimizer, train_dataloader) -> di
     return _compute_metrics(torch.cat(all_labels), torch.cat(all_preds), total_loss, len(train_dataloader))
 
 
-def validate(device, model, criterion, val_dataloader) -> dict:
+def validate(device, model, criterion, val_dataloader: DataLoader) -> dict:
     model.eval()
 
     total_loss = 0.0
@@ -62,7 +279,7 @@ def validate(device, model, criterion, val_dataloader) -> dict:
     return _compute_metrics(torch.cat(all_labels), torch.cat(all_preds), total_loss, len(val_dataloader))
 
 
-def benchmark(device, model, test_dataloader) -> dict:
+def benchmark(device, model, test_dataloader: DataLoader) -> dict:
     model.eval()
 
     macs = 0
@@ -98,7 +315,9 @@ def benchmark(device, model, test_dataloader) -> dict:
         acs = 0
     else:
         snn_ac_monitor.remove()
-        macs = _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if model.name == ModelType.SNN_DIRECT else 0
+        macs = (
+            _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if model.name == ModelType.SNN_DIRECT else 0
+        )
         total_acs = snn_ac_monitor.get_total_acs()
         acs = int(total_acs / total)
 
@@ -106,14 +325,19 @@ def benchmark(device, model, test_dataloader) -> dict:
     return metrics
 
 
-def _forward(model, inputs) -> torch.Tensor:
+def _forward(model, inputs: torch.Tensor) -> torch.Tensor:
     outputs = model(inputs)
     if model.name != ModelType.CNN:
-        outputs = outputs.sum(dim=0) # Need to sum if an SNN
+        outputs = outputs.sum(dim=0)  # Need to sum if an SNN
     return outputs
 
 
-def _compute_metrics(all_labels: torch.Tensor, all_preds: torch.Tensor, total_loss: float, num_batches: int) -> dict:
+def _compute_metrics(
+    all_labels: torch.Tensor,
+    all_preds: torch.Tensor,
+    total_loss: float,
+    num_batches: int,
+) -> dict:
     """Returns a dict of loss, accuracy, macro_f1 and weighted_f1."""
     report = classification_report(all_labels, all_preds, output_dict=True)
 
@@ -137,7 +361,7 @@ def _compute_benchmark_metrics(all_labels: torch.Tensor, all_preds: torch.Tensor
         'weighted_precision': report['weighted avg']['precision'],
         'weighted_recall': report['weighted avg']['recall'],
         'macs': macs,
-        'acs': acs
+        'acs': acs,
     }
 
 

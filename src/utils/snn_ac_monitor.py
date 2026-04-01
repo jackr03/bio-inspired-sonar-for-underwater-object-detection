@@ -4,6 +4,7 @@ from torch import nn
 
 class SNNACMonitor:
     """Monitors and accumulates the total AC operations for an SNN."""
+
     SPIKING_LAYERS = (snn.Leaky,)
 
     def __init__(self, model: nn.Module):
@@ -17,6 +18,7 @@ class SNNACMonitor:
             # Need just the spikes at index 0
             spikes = output[0].detach().sum().item()
             self._total_acs += spikes * fanout
+
         return hook
 
     def attach(self) -> None:

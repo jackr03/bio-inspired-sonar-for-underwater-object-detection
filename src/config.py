@@ -48,8 +48,9 @@ class Config:
         n_fft=1024,
         n_bins=64,
         delta_threshold=0.1,
-        excluded_classes=set()
+        excluded_classes=set(),
     )
     hyperparameter_tuning: HyperparameterTuningConfig = HyperparameterTuningConfig()
+
 
 CONFIG = Config()

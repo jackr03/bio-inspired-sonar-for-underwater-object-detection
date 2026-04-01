@@ -13,10 +13,9 @@ class AugmentedSubset(Dataset):
 
     def __getitem__(self, index):
         spectrogram, label = self.subset[index]
-        
+
         # Avoid modifying the original
         spectrogram = spectrogram.clone()
         spectrogram = self.freq_mask(spectrogram)
         spectrogram = self.time_mask(spectrogram)
         return spectrogram, label
-

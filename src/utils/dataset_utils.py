@@ -3,7 +3,7 @@ from pathlib import Path, PureWindowsPath
 import numpy as np
 import torch
 from sklearn.model_selection import StratifiedShuffleSplit
-from torch.utils.data import Dataset, DataLoader, Subset, random_split
+from torch.utils.data import DataLoader, Dataset, Subset, random_split
 
 from src.config import CONFIG
 from src.datasets.spectrogram_dataset import SpectrogramDataset
@@ -13,7 +13,6 @@ from src.types.filterbank_type import FilterbankType
 from src.types.model_type import ModelType
 
 
-# TODO: Clean up kfold
 def get_dataset(model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType) -> Dataset:
     match model_type:
         case ModelType.CNN | ModelType.SNN_DIRECT:
@@ -22,32 +21,50 @@ def get_dataset(model_type: ModelType, dataset_type: DatasetType, filterbank_typ
             return SpikeDataset(dataset_type, filterbank_type)
 
 
-def get_split_dataloaders(dataset: Dataset, dataset_type: DatasetType) -> tuple[DataLoader, DataLoader, DataLoader]:
-    """Returns an 80/10/10 split of DataLoaders from the given dataset."""
-    match dataset_type:
-        case DatasetType.AUDIOMNIST:
-            return _build_audiomnist_dataloaders(dataset)
-        case DatasetType.SHIPSEAR:
-            raise ValueError('Use get_kfold_dataloaders() for ShipsEar')
-
-
-def _build_audiomnist_dataloaders(dataset: Dataset) -> tuple[DataLoader, DataLoader, DataLoader]:
+def get_split_dataloaders(dataset: Dataset) -> tuple[DataLoader, DataLoader, DataLoader]:
+    """Returns an 80/10/10 random split of DataLoaders from the given dataset."""
     train_size = int(0.8 * len(dataset))
     val_size = int(0.1 * len(dataset))
     test_size = len(dataset) - train_size - val_size
 
     train_dataset, val_dataset, test_dataset = random_split(
-        dataset, [train_size, val_size, test_size],
-        generator=torch.Generator().manual_seed(CONFIG.seed)
+        dataset=dataset,
+        lengths=[train_size, val_size, test_size],
+        generator=torch.Generator().manual_seed(CONFIG.seed),
     )
 
-    train_dataloader = DataLoader(train_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True, shuffle=True, drop_last=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=CONFIG.batch_size,
+        num_workers=4,
+        persistent_workers=True,
+        pin_memory=True,
+        shuffle=True,
+        drop_last=True,
+    )
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=CONFIG.batch_size,
+        num_workers=4,
+        persistent_workers=True,
+        pin_memory=True,
+    )
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=CONFIG.batch_size,
+        num_workers=4,
+        persistent_workers=True,
+        pin_memory=True,
+    )
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def get_kfold_dataloaders(dataset: Dataset, dataset_type: DatasetType, n_folds: int = 5) -> list[tuple[DataLoader, DataLoader, DataLoader]]:
+# FIXME: Currently only works with ShipsEar
+def get_kfold_dataloaders(
+    dataset: Dataset,
+    dataset_type: DatasetType,
+    n_folds: int = 5,
+) -> list[tuple[DataLoader, DataLoader, DataLoader]]:
     """Returns a list of (train, val, test) DataLoader tuples, one per fold."""
     stem_to_idx = {stem: i for i, stem in enumerate(dataset.stems)}
     folds = []
@@ -56,8 +73,8 @@ def get_kfold_dataloaders(dataset: Dataset, dataset_type: DatasetType, n_folds: 
         train_list = dataset_type.input_dir / f'train_list_{fold}.txt'
         test_list = dataset_type.input_dir / f'test_list_{fold}.txt'
 
-        train_stems = _parse_split_file(train_list)
-        test_stems = _parse_split_file(test_list)
+        train_stems = _parse_shipsear_split_file(train_list)
+        test_stems = _parse_shipsear_split_file(test_list)
 
         train_idx = np.array([stem_to_idx[s] for s in train_stems if s in stem_to_idx])
         test_idx = np.array([stem_to_idx[s] for s in test_stems if s in stem_to_idx])
@@ -74,15 +91,35 @@ def get_kfold_dataloaders(dataset: Dataset, dataset_type: DatasetType, n_folds: 
         val_dataset = Subset(dataset, val_idx)
         test_dataset = Subset(dataset, test_idx)
 
-        train_dataloader = DataLoader(train_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True, shuffle=True, drop_last=True)
-        val_dataloader = DataLoader(val_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
-        test_dataloader = DataLoader(test_dataset, batch_size=CONFIG.batch_size, num_workers=4, persistent_workers=True, pin_memory=True)
+        train_dataloader = DataLoader(
+            train_dataset,
+            batch_size=CONFIG.batch_size,
+            num_workers=4,
+            persistent_workers=True,
+            pin_memory=True,
+            shuffle=True,
+            drop_last=True,
+        )
+        val_dataloader = DataLoader(
+            val_dataset,
+            batch_size=CONFIG.batch_size,
+            num_workers=4,
+            persistent_workers=True,
+            pin_memory=True,
+        )
+        test_dataloader = DataLoader(
+            test_dataset,
+            batch_size=CONFIG.batch_size,
+            num_workers=4,
+            persistent_workers=True,
+            pin_memory=True,
+        )
         folds.append((train_dataloader, val_dataloader, test_dataloader))
 
     return folds
 
 
-def _parse_split_file(path: Path) -> list[str]:
+def _parse_shipsear_split_file(path: Path) -> list[str]:
     """Parses a ShipsEar split file, returning file stems."""
     stems = []
     with open(path) as f:

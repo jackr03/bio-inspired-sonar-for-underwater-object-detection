@@ -11,7 +11,7 @@ class VGGBlock(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.ReLU()
+            nn.ReLU(),
         )
         self.pool = nn.MaxPool2d(kernel_size=2)
 
@@ -35,7 +35,7 @@ class CNN(nn.Module):
             nn.AvgPool2d(kernel_size=2, stride=2),
             nn.Flatten(),
             nn.Dropout(dropout),
-            nn.LazyLinear(out_features=num_classes)
+            nn.LazyLinear(out_features=num_classes),
         )
 
     def forward(self, x: Tensor) -> Tensor:

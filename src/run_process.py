@@ -6,7 +6,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.types.dataset_type import DatasetType
 from src.types.filterbank_type import FilterbankType
-from src.utils.preprocessing_utils import get_snn_pipeline, get_cnn_pipeline, encode_file, process_file
+from src.utils.preprocessing_utils import (
+    encode_file,
+    get_cnn_pipeline,
+    get_snn_pipeline,
+    process_file,
+)
 
 warnings.filterwarnings('ignore', category=UserWarning)
 
@@ -26,7 +31,9 @@ def run_process(dataset: DatasetType, filterbank: FilterbankType, encode: bool) 
     output_dir.mkdir(parents=True, exist_ok=True)
 
     wav_files = list(dataset.input_dir.rglob('*.wav'))
-    print(f'{'Encoding' if encode else 'Processing'} {len(wav_files)} files for {dataset.value} using {filterbank.value} filterbanks...')
+    print(
+        f'{"Encoding" if encode else "Processing"} {len(wav_files)} files for {dataset.value} using {filterbank.value} filterbanks...'
+    )
 
     num_workers = os.cpu_count()
     start_time = time.time()

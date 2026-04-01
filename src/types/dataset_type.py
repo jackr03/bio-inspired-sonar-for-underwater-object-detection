@@ -26,11 +26,15 @@ class DatasetType(str, Enum):
     @property
     def input_dir(self) -> Path:
         return CONFIG.project_root / 'data' / self
-    
+
     @property
     def _processed_data_dir(self) -> Path:
         """Determines the directory for processed data (for use with CSF3 clusters)."""
-        return Path(os.environ['PROCESSED_DATA_DIR']) if 'PROCESSED_DATA_DIR' in os.environ else CONFIG.project_root / 'processed'
+        return (
+            Path(os.environ['PROCESSED_DATA_DIR'])
+            if 'PROCESSED_DATA_DIR' in os.environ
+            else CONFIG.project_root / 'processed'
+        )
 
     def get_spectrogram_dir(self, filterbank_type: FilterbankType) -> Path:
         return self._processed_data_dir / f'{self.value}-{filterbank_type.value}-spectrograms'
@@ -79,5 +83,5 @@ class DatasetType(str, Enum):
         return {
             'in_channels': in_channels,
             'num_classes': self.num_classes,
-            'channels': channels
+            'channels': channels,
         }
