@@ -31,7 +31,8 @@ class Config:
     epochs: int = 50
     patience: int = 5
     batch_size: int = 64
-    show_progress: bool = False
+    should_train: bool = True
+    show_progress: bool = True
     audiomnist: AudioConfig = AudioConfig(
         original_sample_rate=48_000,
         target_sample_rate=16_000,

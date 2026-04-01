@@ -34,10 +34,10 @@ class SNNDirect(nn.Module):
         in_channels: int,
         num_classes: int,
         channels: list[int],
-        dropout: float,
-        beta_init: float,
-        slope: int,
-        timesteps: int,
+        dropout: float = 0.5,
+        beta_init: float = 0.5,
+        slope: int = 25,
+        timesteps: int = 5,
     ):
         super().__init__()
 

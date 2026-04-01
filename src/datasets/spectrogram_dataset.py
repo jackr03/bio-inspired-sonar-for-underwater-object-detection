@@ -19,8 +19,7 @@ class SpectrogramDataset(Dataset):
         for file in files:
             spectrogram = torch.load(file)
             self.spectrograms.append(spectrogram)
-        print(f'Finished loading spectrograms.')
-        print(f'Time taken: {time.time() - start_time:.0f} seconds')
+        print(f'Finished loading spectrograms ({time.time() - start_time:.0f}s)')
 
         self.stems = [file.stem for file in files]
         self.labels = [dataset.label_map[stem] for stem in self.stems]

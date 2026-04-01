@@ -27,8 +27,7 @@ class SpikeDataset(Dataset):
             dual_channel_spikes = torch.stack((on_spikes, off_spikes), dim=0)
 
             self.spikes.append(dual_channel_spikes)
-        print(f'Finished loading spikes.')
-        print(f'Time taken: {time.time() - start_time:.0f} seconds')
+        print(f'Finished loading spikes ({time.time() - start_time:.0f}s)')
 
         self.stems = [file.stem for file in files]
         self.labels = [dataset.label_map[stem] for stem in self.stems]

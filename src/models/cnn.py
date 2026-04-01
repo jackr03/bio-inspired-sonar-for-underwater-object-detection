@@ -21,7 +21,7 @@ class VGGBlock(nn.Module):
 
 
 class CNN(nn.Module):
-    def __init__(self, in_channels: int, num_classes: int, channels: list[int], dropout: float):
+    def __init__(self, in_channels: int, num_classes: int, channels: list[int], dropout: float = 0.5):
         super().__init__()
 
         vgg_blocks = []
