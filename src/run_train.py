@@ -93,7 +93,11 @@ def train_and_benchmark(device, model_type: ModelType, dataset_type: DatasetType
     print(f'Running benchmark on test set...')
     model.load_state_dict(torch.load(components['model_path'], map_location=device))
     test_metrics = benchmark(device, model, test_dataloader)
-    print(f'[Benchmark] Accuracy: {test_metrics["accuracy"]:.2f}% | Macro F1: {test_metrics["macro_f1"]:.4f} | Weighted F1: {test_metrics["weighted_f1"]:.4f} | MACs: {test_metrics['macs']:,} | ACs: {test_metrics['acs']:,}')
+    print(f'[Benchmark Results]')
+    print(f' Accuracy: {test_metrics["accuracy"]:.2f}%')
+    print(f'  Macro    — F1: {test_metrics["macro_f1"]:.4f} | Precision: {test_metrics["macro_precision"]:.4f} | Recall: {test_metrics["macro_recall"]:.4f}')
+    print(f'  Weighted — F1: {test_metrics["weighted_f1"]:.4f} | Precision: {test_metrics["weighted_precision"]:.4f} | Recall: {test_metrics["weighted_recall"]:.4f}')
+    print(f'  MACs: {test_metrics["macs"]:,} | ACs: {test_metrics["acs"]:,}')
 
     return {
         'model': model_type.value,
