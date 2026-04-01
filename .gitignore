@@ -209,14 +209,19 @@ __marimo__/
 .DS_Store
 .idea/
 
-# Data
+# Data and models
 data/*
 processed/*
+models/*
 
 # Track just the folders
 !data/.gitkeep
-!processed/.
+!processed/.gitkeep
+!models/.gitkeep
 
 # Runs
-runs/smoke
-runs/processing
+runs
+
+# Claude
+CLAUDE.md
+.claude
