@@ -19,7 +19,7 @@ class AudioConfig:
 
 @dataclass(frozen=True)
 class HyperparameterTuningConfig:
-    should_run: bool = False
+    should_run: bool = True
     epochs: int = 5
     trials: int = 20
 
@@ -28,11 +28,11 @@ class HyperparameterTuningConfig:
 class Config:
     project_root = Path(__file__).resolve().parent.parent
     seed: int = 100
-    epochs: int = 50
-    patience: int = 5
+    epochs: int = 100
+    patience: int = 10
     batch_size: int = 64
     should_train: bool = True
-    show_progress: bool = True
+    show_progress: bool = False
     audiomnist: AudioConfig = AudioConfig(
         original_sample_rate=48_000,
         target_sample_rate=16_000,
@@ -48,7 +48,7 @@ class Config:
         target_duration=5.0,
         n_fft=1024,
         n_bins=64,
-        delta_threshold=0.1,
+        delta_threshold=0.05,
         excluded_classes=set(),
     )
     hyperparameter_tuning: HyperparameterTuningConfig = HyperparameterTuningConfig()

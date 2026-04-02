@@ -1,4 +1,6 @@
+import shutil
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -29,9 +31,15 @@ def train(
     model_type: ModelType,
     dataset_type: DatasetType,
     filterbank_type: FilterbankType,
+    fold: int = None,
     dataloaders: tuple[DataLoader, DataLoader, DataLoader] = None,
 ) -> dict:
     components = get_model_components(model_type, dataset_type, filterbank_type)
+    if fold is not None:
+        standard_path = components['model_path']
+        tmp_dir = standard_path.parent / f'tmp-{standard_path.stem}'
+        tmp_dir.mkdir(exist_ok=True)
+        components['model_path'] = tmp_dir / f'fold_{fold}.pth'
 
     if dataloaders is None:
         dataset = get_dataset(model_type, dataset_type, filterbank_type)
@@ -141,22 +149,32 @@ def train_kfold(
 
     components = get_model_components(model_type, dataset_type, filterbank_type)
 
+    standard_path = components['model_path']
+    tmp_dir = standard_path.parent / f'tmp-{standard_path.stem}'
+
     fold_results = []
     for i, dataloaders in enumerate(folds):
         print(f'\n{"=" * 60}')
         print(f'Fold {i + 1}/{len(folds)}')
         print(f'{"=" * 60}\n')
-        train_result = train(device, model_type, dataset_type, filterbank_type, dataloaders=dataloaders)
+        train_result = train(device, model_type, dataset_type, filterbank_type, fold=i + 1, dataloaders=dataloaders)
 
         # Load best model from this fold and benchmark on fold's test set
         _, _, test_dataloader = dataloaders
         model_config = dataset_type.get_model_config(model_type)
         hyperparameters = train_result['hyperparameters']
         model = components['model_class'](**{**model_config, **hyperparameters['model_init']}).to(device)
-        model.load_state_dict(torch.load(components['model_path'], map_location=device, weights_only=True))
+        fold_path = tmp_dir / f'fold_{i + 1}.pth'
+        model.load_state_dict(torch.load(fold_path, map_location=device, weights_only=True))
         benchmark_result = benchmark(device, model, test_dataloader)
 
         fold_results.append({**train_result, 'benchmark': benchmark_result})
+
+    # Save the best fold's model (by val macro F1) to the standard path, then clean up tmp dir
+    best_fold_idx = max(range(len(fold_results)), key=lambda i: fold_results[i]['best_val_macro_f1'])
+    shutil.copy(tmp_dir / f'fold_{best_fold_idx + 1}.pth', standard_path)
+    shutil.rmtree(tmp_dir)
+    print(f'Best model: fold {best_fold_idx + 1} (val macro F1: {fold_results[best_fold_idx]["best_val_macro_f1"]:.4f}) → saved to {standard_path}')
 
     # Aggregate benchmark metrics across folds
     metric_keys = [
@@ -400,7 +418,7 @@ def _compute_metrics(
     num_batches: int,
 ) -> dict:
     """Returns a dict of loss, accuracy, macro_f1 and weighted_f1."""
-    report = classification_report(all_labels, all_preds, output_dict=True)
+    report = classification_report(all_labels, all_preds, zero_division=0, output_dict=True)
 
     return {
         'loss': total_loss / num_batches,
@@ -411,7 +429,7 @@ def _compute_metrics(
 
 
 def _compute_benchmark_metrics(all_labels: torch.Tensor, all_preds: torch.Tensor, macs: int, acs: int) -> dict:
-    report = classification_report(all_labels, all_preds, output_dict=True)
+    report = classification_report(all_labels, all_preds, zero_division=0, output_dict=True)
 
     return {
         'accuracy': report['accuracy'] * 100,
