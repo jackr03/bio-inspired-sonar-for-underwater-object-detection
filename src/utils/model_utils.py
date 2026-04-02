@@ -20,7 +20,8 @@ def get_model_components(model_type: ModelType, dataset_type: DatasetType, filte
     file_name = _format_file_name(model_type, dataset_type, filterbank_type)
     return {
         'model_class': MODEL_CLASSES[model_type],
-         'hyperparameters_path': CONFIG.project_root / 'hyperparameters' / f'{file_name}.json',
+        'model_path': CONFIG.project_root / 'models' / f'{file_name}.pth',
+        'hyperparameters_path': CONFIG.project_root / 'hyperparameters' / f'{file_name}.json',
     }
 
 

@@ -10,11 +10,12 @@ class VGGBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, beta_init: float, spike_grad):
         super().__init__()
 
-        beta = torch.ones(1, out_channels, 1) * beta_init
+        beta1 = torch.ones(1, out_channels, 1) * beta_init
+        beta2 = torch.ones(1, out_channels, 1) * beta_init
         self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size=3, padding=1)
-        self.lif1 = snn.Leaky(spike_grad=spike_grad, beta=beta, learn_beta=True)
+        self.lif1 = snn.Leaky(spike_grad=spike_grad, beta=beta1, learn_beta=True)
         self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size=3, padding=1)
-        self.lif2 = snn.Leaky(spike_grad=spike_grad, beta=beta, learn_beta=True)
+        self.lif2 = snn.Leaky(spike_grad=spike_grad, beta=beta2, learn_beta=True)
         self.pool = nn.MaxPool1d(kernel_size=2)
 
     def forward(self, x: Tensor, mem1: Tensor, mem2: Tensor) -> tuple[Tensor, Tensor, Tensor]:
