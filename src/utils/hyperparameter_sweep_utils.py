@@ -32,7 +32,7 @@ def run_hyperparameter_sweep(
     if dataset_type == DatasetType.SHIPSEAR:
         train_dataloader, val_dataloader, _ = get_kfold_dataloaders(dataset, dataset_type)[0]
     else:
-        train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset, dataset_type)
+        train_dataloader, val_dataloader, _ = get_split_dataloaders(dataset)
 
     def objective(trial) -> float | tuple[float, int]:
         hyperparameters = get_hyperparameter_suggestions(trial, model_type)

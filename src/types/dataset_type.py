@@ -1,4 +1,5 @@
 import os
+import random
 from collections import Counter
 from enum import Enum
 from functools import cached_property
@@ -68,20 +69,27 @@ class DatasetType(str, Enum):
         return weights
 
     def get_model_config(self, model: ModelType) -> dict:
+        config = {
+            'num_classes': self.num_classes,
+        }
+
         match self:
             case DatasetType.AUDIOMNIST:
-                channels = [8, 16]
+                config['self'] = [8, 16]
             case DatasetType.SHIPSEAR:
-                channels = [16, 32]
+                config['self'] = [16, 32]
 
         match model:
             case ModelType.CNN | ModelType.SNN_DIRECT:
-                in_channels = 1
+                config['in_channels'] = 1
             case ModelType.SNN:
-                in_channels = 2
+                config['in_channels'] = 2
+                config['timesteps'] = self.config.timesteps
 
-        return {
-            'in_channels': in_channels,
-            'num_classes': self.num_classes,
-            'channels': channels,
-        }
+        return config
+
+    def get_random_sample(self, filterbank: FilterbankType, encoded: bool) -> torch.Tensor:
+        dir = self.get_spike_dir(filterbank) if encoded else self.get_spectrogram_dir(filterbank)
+        all_files = dir.rglob('*.pt')
+        random_file = random.choice(list(all_files))
+        return torch.load(random_file)

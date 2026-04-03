@@ -9,12 +9,16 @@ class AudioConfig:
     target_duration: float
     n_fft: int
     n_bins: int
+    hop_length: int
     delta_threshold: float
-    excluded_classes: set[str]
 
     @property
     def target_samples(self) -> int:
         return int(self.target_sample_rate * self.target_duration)
+
+    @property
+    def timesteps(self) -> int:
+        return int(self.target_samples / self.hop_length)
 
 
 @dataclass(frozen=True)
@@ -38,9 +42,9 @@ class Config:
         target_sample_rate=16_000,
         target_duration=0.84,
         n_fft=1024,
+        hop_length=512,
         n_bins=64,
         delta_threshold=0.1,
-        excluded_classes=set(),
     )
     shipsear: AudioConfig = AudioConfig(
         original_sample_rate=16_000,
@@ -48,8 +52,8 @@ class Config:
         target_duration=5.0,
         n_fft=1024,
         n_bins=64,
+        hop_length=512,
         delta_threshold=0.05,
-        excluded_classes=set(),
     )
     hyperparameter_tuning: HyperparameterTuningConfig = HyperparameterTuningConfig()
 

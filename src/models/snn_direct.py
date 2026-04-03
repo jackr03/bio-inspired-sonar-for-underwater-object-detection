@@ -6,6 +6,7 @@ from torch import nn, Tensor
 from src.types.model_type import ModelType
 
 
+# TODO: Add BN
 class VGGBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, beta_init: float, spike_grad):
         super().__init__()

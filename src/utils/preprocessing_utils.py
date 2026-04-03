@@ -52,6 +52,7 @@ def get_filterbank(
             return torchaudio.transforms.MelSpectrogram(
                 sample_rate=config.target_sample_rate,
                 n_fft=config.n_fft,
+                hop_length=config.hop_length,
                 n_mels=config.n_bins,
                 pad_mode='constant',
                 norm='slaney',
@@ -60,6 +61,7 @@ def get_filterbank(
         case FilterbankType.GAMMATONE:
             return Gammatonegram(
                 sr=config.target_sample_rate,
+                hop_length=config.hop_length,
                 n_fft=config.n_fft,
                 n_bins=config.n_bins,
             )

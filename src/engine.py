@@ -174,7 +174,9 @@ def train_kfold(
     best_fold_idx = max(range(len(fold_results)), key=lambda i: fold_results[i]['best_val_macro_f1'])
     shutil.copy(tmp_dir / f'fold_{best_fold_idx + 1}.pth', standard_path)
     shutil.rmtree(tmp_dir)
-    print(f'Best model: fold {best_fold_idx + 1} (val macro F1: {fold_results[best_fold_idx]["best_val_macro_f1"]:.4f}) → saved to {standard_path}')
+    print(
+        f'Best model: fold {best_fold_idx + 1} (val macro F1: {fold_results[best_fold_idx]["best_val_macro_f1"]:.4f}) → saved to {standard_path}'
+    )
 
     # Aggregate benchmark metrics across folds
     metric_keys = [
@@ -360,8 +362,8 @@ def compare_models(
     dataset2 = get_dataset(model2_type, dataset_type, filterbank2_type)
 
     # Use the same seed for split so that models are tested on exact same things
-    _, _, dataloader1 = get_split_dataloaders(dataset1, dataset_type)
-    _, _, dataloader2 = get_split_dataloaders(dataset2, dataset_type)
+    _, _, dataloader1 = get_split_dataloaders(dataset1)
+    _, _, dataloader2 = get_split_dataloaders(dataset2)
 
     _, sample_labels1 = next(iter(dataloader1))
     _, sample_labels2 = next(iter(dataloader2))
@@ -403,6 +405,7 @@ def compare_models(
     )
     plt.tight_layout()
     plt.show()
+
 
 def _forward(model, inputs: torch.Tensor) -> torch.Tensor:
     outputs = model(inputs)
