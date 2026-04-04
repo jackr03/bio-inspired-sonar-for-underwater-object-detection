@@ -23,7 +23,7 @@ class AudioConfig:
 
 @dataclass(frozen=True)
 class HyperparameterTuningConfig:
-    should_run: bool = True
+    should_run: bool = False
     epochs: int = 5
     trials: int = 20
 
@@ -33,7 +33,7 @@ class Config:
     project_root = Path(__file__).resolve().parent.parent
     seed: int = 100
     epochs: int = 100
-    patience: int = 10
+    patience: int = 15
     batch_size: int = 64
     should_train: bool = True
     show_progress: bool = False
@@ -44,7 +44,7 @@ class Config:
         n_fft=1024,
         hop_length=512,
         n_bins=64,
-        delta_threshold=0.1,
+        delta_threshold=0.15,
     )
     shipsear: AudioConfig = AudioConfig(
         original_sample_rate=16_000,
