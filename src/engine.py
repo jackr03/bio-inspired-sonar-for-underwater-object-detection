@@ -166,9 +166,20 @@ def train_kfold(
         model = components['model_class'](**{**model_config, **hyperparameters['model_init']}).to(device)
         fold_path = tmp_dir / f'fold_{i + 1}.pth'
         model.load_state_dict(torch.load(fold_path, map_location=device, weights_only=True))
-        benchmark_result = benchmark(device, model, test_dataloader)
 
-        fold_results.append({**train_result, 'benchmark': benchmark_result})
+        print('Running benchmark on test set...')
+        test_metrics = benchmark(device, model, test_dataloader)
+        print('[Benchmark Results]')
+        print(f' Accuracy: {test_metrics["accuracy"]:.2f}%')
+        print(
+            f'  Macro    — F1: {test_metrics["macro_f1"]:.4f} | Precision: {test_metrics["macro_precision"]:.4f} | Recall: {test_metrics["macro_recall"]:.4f}'
+        )
+        print(
+            f'  Weighted — F1: {test_metrics["weighted_f1"]:.4f} | Precision: {test_metrics["weighted_precision"]:.4f} | Recall: {test_metrics["weighted_recall"]:.4f}'
+        )
+        print(f'  MACs: {test_metrics["macs"]:,} | ACs: {test_metrics["acs"]:,}')
+
+        fold_results.append({**train_result, 'benchmark': test_metrics})
 
     # Save the best fold's model (by val macro F1) to the standard path, then clean up tmp dir
     best_fold_idx = max(range(len(fold_results)), key=lambda i: fold_results[i]['best_val_macro_f1'])

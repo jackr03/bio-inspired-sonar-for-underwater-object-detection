@@ -18,7 +18,7 @@ class AudioConfig:
 
     @property
     def timesteps(self) -> int:
-        return int(self.target_samples / self.hop_length)
+        return int(self.target_samples / self.hop_length) + 1
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,7 @@ class Config:
         n_fft=1024,
         n_bins=64,
         hop_length=512,
-        delta_threshold=0.05,
+        delta_threshold=0.1,
     )
     hyperparameter_tuning: HyperparameterTuningConfig = HyperparameterTuningConfig()
 
