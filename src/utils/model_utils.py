@@ -25,16 +25,11 @@ def get_model_components(model_type: ModelType, dataset_type: DatasetType, filte
     }
 
 
-def load_model_hyperparameters(model_type: ModelType, hyperparameters_path: Path) -> dict:
+def load_model_hyperparameters(hyperparameters_path: Path) -> dict:
     with open(hyperparameters_path, 'r') as f:
         data = json.load(f)
 
-    match model_type:
-        case ModelType.CNN | ModelType.SNN:
-            return data
-        case ModelType.SNN_DIRECT:
-            # Choose lowest timesteps from Pareto front
-            return data[1]['params']
+    return data
 
 
 def _format_file_name(model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType) -> str:

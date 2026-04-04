@@ -50,7 +50,7 @@ class SNNDirect(nn.Module):
 
         self.blocks = nn.ModuleList()
         for out_channels in channels:
-            self.blocks.append(VGGBlock(in_channels, out_channels, beta_init, spike_grad, timesteps))
+            self.blocks.append(VGGBlock(in_channels, out_channels, beta_init, timesteps, spike_grad))
             in_channels = out_channels
 
         self.classifier = nn.Sequential(

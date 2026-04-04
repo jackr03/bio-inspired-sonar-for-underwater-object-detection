@@ -49,7 +49,7 @@ def train(
 
     # Load model parameters
     model_config = dataset_type.get_model_config(model_type)
-    hyperparameters = load_model_hyperparameters(model_type, components['hyperparameters_path'])
+    hyperparameters = load_model_hyperparameters(components['hyperparameters_path'])
 
     # Combine into one for easier use
     model_params = {
@@ -381,13 +381,13 @@ def compare_models(
     assert torch.equal(sample_labels1, sample_labels2)  # Should fail here immediately, otherwise not a fair test
 
     # Load models
-    hyperparameters1 = load_model_hyperparameters(model1_type, components1['hyperparameters_path'])
+    hyperparameters1 = load_model_hyperparameters(components1['hyperparameters_path'])
     model1 = components1['model_class'](
         **dataset_type.get_model_config(model1_type), **hyperparameters1['model_init']
     ).to(device)
     model1.load_state_dict(torch.load(components1['model_path'], map_location=device))
 
-    hyperparameters2 = load_model_hyperparameters(model2_type, components2['hyperparameters_path'])
+    hyperparameters2 = load_model_hyperparameters(components2['hyperparameters_path'])
     model2 = components2['model_class'](
         **dataset_type.get_model_config(model2_type), **hyperparameters2['model_init']
     ).to(device)
