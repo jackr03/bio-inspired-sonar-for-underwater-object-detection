@@ -230,32 +230,103 @@ def load_and_benchmark(
 ) -> dict:
     components = get_model_components(model_type, dataset_type, filterbank_type)
     dataset = get_dataset(model_type, dataset_type, filterbank_type)
-    _, _, test_dataloader = get_split_dataloaders(dataset)
-
     model_config = dataset_type.get_model_config(model_type)
+
     model = components['model_class'](**model_config).to(device)
     model.load_state_dict(torch.load(components['model_path'], map_location=device))
 
+    if dataset_type == DatasetType.SHIPSEAR:
+        return _load_and_benchmark_kfold(device, model, model_type, dataset_type, filterbank_type, dataset)
+    else:
+        return _load_and_benchmark_single(device, model, model_type, dataset_type, filterbank_type, dataset)
+
+
+def _load_and_benchmark_single(
+    device,
+    model,
+    model_type: ModelType,
+    dataset_type: DatasetType,
+    filterbank_type: FilterbankType,
+    dataset,
+) -> dict:
+    _, _, test_dataloader = get_split_dataloaders(dataset)
+
     print('Running benchmark on test set...')
     test_metrics = benchmark(device, model, test_dataloader)
-    print('[Benchmark Results]')
-    print(f' Accuracy: {test_metrics["accuracy"]:.2f}%')
-    print(
-        f'  Macro    — F1: {test_metrics["macro_f1"]:.4f} | Precision: {test_metrics["macro_precision"]:.4f} | Recall: {test_metrics["macro_recall"]:.4f}'
-    )
-    print(
-        f'  Weighted — F1: {test_metrics["weighted_f1"]:.4f} | Precision: {test_metrics["weighted_precision"]:.4f} | Recall: {test_metrics["weighted_recall"]:.4f}'
-    )
-    print(f'  MACs: {test_metrics["macs"]:,} | ACs: {test_metrics["acs"]:,}')
+    _print_benchmark_metrics(test_metrics)
 
     return {
         'model': model_type.value,
         'dataset': dataset_type.value,
         'filterbank': filterbank_type.value,
         'device': str(device),
-        'model_config': model_config,
         'benchmark': test_metrics,
     }
+
+
+def _load_and_benchmark_kfold(
+    device,
+    model,
+    model_type: ModelType,
+    dataset_type: DatasetType,
+    filterbank_type: FilterbankType,
+    dataset,
+) -> dict:
+    folds = get_kfold_dataloaders(dataset, dataset_type)
+    fold_metrics = []
+
+    for i, (_, _, test_dataloader) in enumerate(folds):
+        print(f'Benchmarking fold {i + 1}/{len(folds)}...')
+        test_metrics = benchmark(device, model, test_dataloader)
+        _print_benchmark_metrics(test_metrics)
+        fold_metrics.append(test_metrics)
+
+    metric_keys = [
+        'accuracy',
+        'macro_f1',
+        'macro_precision',
+        'macro_recall',
+        'weighted_f1',
+        'weighted_precision',
+        'weighted_recall',
+    ]
+    aggregate = {}
+    for key in metric_keys:
+        values = [m[key] for m in fold_metrics]
+        aggregate[key] = {'mean': float(np.mean(values)), 'std': float(np.std(values))}
+
+    # MACs/ACs are deterministic — same across folds, take from first
+    aggregate['macs'] = fold_metrics[0]['macs']
+    aggregate['acs'] = fold_metrics[0]['acs']
+
+    print(f'\n{"=" * 60}')
+    print(f'K-Fold Benchmark Results (mean ± std across {len(folds)} folds)')
+    print(f'{"=" * 60}')
+    print(f' Accuracy: {aggregate["accuracy"]["mean"]:.2f}% ± {aggregate["accuracy"]["std"]:.2f}%')
+    print(f'  Macro    — F1: {aggregate["macro_f1"]["mean"]:.4f} ± {aggregate["macro_f1"]["std"]:.4f}')
+    print(f'  Weighted — F1: {aggregate["weighted_f1"]["mean"]:.4f} ± {aggregate["weighted_f1"]["std"]:.4f}')
+    print(f'  MACs: {aggregate["macs"]:,} | ACs: {aggregate["acs"]:,}')
+
+    return {
+        'model': model_type.value,
+        'dataset': dataset_type.value,
+        'filterbank': filterbank_type.value,
+        'device': str(device),
+        'n_folds': len(folds),
+        'aggregate': aggregate,
+        'folds': fold_metrics,
+    }
+
+
+def _print_benchmark_metrics(metrics: dict) -> None:
+    print(f' Accuracy: {metrics["accuracy"]:.2f}%')
+    print(
+        f'  Macro    — F1: {metrics["macro_f1"]:.4f} | Precision: {metrics["macro_precision"]:.4f} | Recall: {metrics["macro_recall"]:.4f}'
+    )
+    print(
+        f'  Weighted — F1: {metrics["weighted_f1"]:.4f} | Precision: {metrics["weighted_precision"]:.4f} | Recall: {metrics["weighted_recall"]:.4f}'
+    )
+    print(f'  MACs: {metrics["macs"]:,} | ACs: {metrics["acs"]:,}')
 
 
 def train_one_epoch(device, model, criterion, optimizer, train_dataloader: DataLoader) -> dict:
@@ -360,62 +431,36 @@ def benchmark(device, model, test_dataloader: DataLoader) -> dict:
 
 def compare_models(
     device,
-    model1_type: ModelType,
-    model2_type: ModelType,
+    models: list[tuple[ModelType, FilterbankType]],
     dataset_type: DatasetType,
-    filterbank1_type: FilterbankType,
-    filterbank2_type: FilterbankType,
 ):
-    components1 = get_model_components(model1_type, dataset_type, filterbank1_type)
-    components2 = get_model_components(model2_type, dataset_type, filterbank2_type)
+    results = []
+    for model_type, filterbank_type in models:
+        print(f'\n{model_type.value} | {filterbank_type.value}')
+        result = load_and_benchmark(device, model_type, dataset_type, filterbank_type)
+        results.append(result)
 
-    dataset1 = get_dataset(model1_type, dataset_type, filterbank1_type)
-    dataset2 = get_dataset(model2_type, dataset_type, filterbank2_type)
+    is_kfold = 'aggregate' in results[0]
 
-    # Use the same seed for split so that models are tested on exact same things
-    _, _, dataloader1 = get_split_dataloaders(dataset1)
-    _, _, dataloader2 = get_split_dataloaders(dataset2)
-
-    _, sample_labels1 = next(iter(dataloader1))
-    _, sample_labels2 = next(iter(dataloader2))
-    assert torch.equal(sample_labels1, sample_labels2)  # Should fail here immediately, otherwise not a fair test
-
-    # Load models
-    hyperparameters1 = load_model_hyperparameters(components1['hyperparameters_path'])
-    model1 = components1['model_class'](
-        **dataset_type.get_model_config(model1_type), **hyperparameters1['model_init']
-    ).to(device)
-    model1.load_state_dict(torch.load(components1['model_path'], map_location=device))
-
-    hyperparameters2 = load_model_hyperparameters(components2['hyperparameters_path'])
-    model2 = components2['model_class'](
-        **dataset_type.get_model_config(model2_type), **hyperparameters2['model_init']
-    ).to(device)
-    model2.load_state_dict(torch.load(components2['model_path'], map_location=device))
-
-    # Benchmark
-    model1_metrics = benchmark(device, model1, dataloader1)
-    model2_metrics = benchmark(device, model2, dataloader2)
+    names = [r['model'] for r in results]
+    if is_kfold:
+        accuracies = [r['aggregate']['accuracy']['mean'] for r in results]
+        accuracy_stds = [r['aggregate']['accuracy']['std'] for r in results]
+        macs = [r['aggregate']['macs'] for r in results]
+        acs = [r['aggregate']['acs'] for r in results]
+    else:
+        accuracies = [r['benchmark']['accuracy'] for r in results]
+        accuracy_stds = None
+        macs = [r['benchmark']['macs'] for r in results]
+        acs = [r['benchmark']['acs'] for r in results]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-    plot_accuracy_comparison(
-        ax1,
-        model1_type.value,
-        model1_metrics['accuracy'],
-        model2_type.value,
-        model2_metrics['accuracy'],
-    )
-    plot_energy_comparison(
-        ax2,
-        model1_type.value,
-        model1_metrics['macs'],
-        model2_metrics['acs'],
-        model2_type.value,
-        model2_metrics['macs'],
-        model2_metrics['acs'],
-    )
+    plot_accuracy_comparison(ax1, names, accuracies, accuracy_stds)
+    plot_energy_comparison(ax2, names, macs, acs)
     plt.tight_layout()
     plt.show()
+
+    return results
 
 
 def _forward(model, inputs: torch.Tensor) -> torch.Tensor:
