@@ -3,15 +3,16 @@ from torch import nn, Tensor
 from src.types.model_type import ModelType
 
 
-# TODO: Add BN
 class VGGBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
 
         self.block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU(),
         )
         self.pool = nn.MaxPool2d(kernel_size=2)

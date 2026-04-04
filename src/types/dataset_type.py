@@ -75,9 +75,9 @@ class DatasetType(str, Enum):
 
         match self:
             case DatasetType.AUDIOMNIST:
-                config['self'] = [8, 16]
+                config['channels'] = [8, 16]
             case DatasetType.SHIPSEAR:
-                config['self'] = [16, 32]
+                config['channels'] = [16, 32]
 
         match model:
             case ModelType.CNN | ModelType.SNN_DIRECT:

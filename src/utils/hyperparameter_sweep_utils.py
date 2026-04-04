@@ -54,23 +54,13 @@ def run_hyperparameter_sweep(
             val_macro_f1 = val_metrics['macro_f1']
             scheduler.step(val_metrics['macro_f1'])
 
-            if model_type != ModelType.SNN_DIRECT:
-                trial.report(val_macro_f1, epoch)
-                if trial.should_prune():
-                    raise optuna.TrialPruned()
+            trial.report(val_macro_f1, epoch)
+            if trial.should_prune():
+                raise optuna.TrialPruned()
 
-        match model_type:
-            case ModelType.CNN | ModelType.SNN:
-                return val_macro_f1
-            case ModelType.SNN_DIRECT:
-                return val_macro_f1, hyperparameters['model_init']['timesteps']
+        return val_macro_f1
 
-    match model_type:
-        case ModelType.CNN | ModelType.SNN:
-            run_sweep(objective, components['hyperparameters_path'])
-        case ModelType.SNN_DIRECT:
-            run_sweep_pareto(objective, components['hyperparameters_path'])
-
+    run_sweep(objective, components['hyperparameters_path'])
 
 def get_hyperparameter_suggestions(trial, model_type: ModelType) -> dict:
     # Common parameters
@@ -85,15 +75,7 @@ def get_hyperparameter_suggestions(trial, model_type: ModelType) -> dict:
     match model_type:
         case ModelType.CNN:
             pass
-        case ModelType.SNN_DIRECT:
-            hyperparameters['model_init'].update(
-                {
-                    'beta_init': trial.suggest_float('beta_init', 0.5, 0.99),
-                    'slope': trial.suggest_int('slope', 10, 50),
-                    'timesteps': trial.suggest_categorical('timesteps', [5, 10, 15]),
-                }
-            )
-        case ModelType.SNN:
+        case ModelType.SNN_DIRECT | ModelType.SNN:
             hyperparameters['model_init'].update(
                 {
                     'beta_init': trial.suggest_float('beta_init', 0.5, 0.99),
@@ -123,7 +105,10 @@ def run_sweep(objective, output_path: Path) -> None:
 
 
 def run_sweep_pareto(objective, output_path: Path) -> None:
-    """A special hyperparameter sweep for finding the Pareto front, e.g. maximising F1-score while minimising timesteps."""
+    """
+    A special hyperparameter sweep for finding the Pareto front, e.g. maximising F1-score while minimising timesteps.
+    Note: No longer used, we fix time steps to 5 now.
+    """
     print('Running hyperparameter sweep (Pareto front)...')
     study = optuna.create_study(directions=['maximize', 'minimize'])
     study.optimize(objective, n_trials=CONFIG.hyperparameter_tuning.trials)
