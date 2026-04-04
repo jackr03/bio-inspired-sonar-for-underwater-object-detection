@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import classification_report
 from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchinfo import summary
 from tqdm.auto import tqdm
 
@@ -226,7 +226,7 @@ def load_and_benchmark(
     device,
     model_type: ModelType,
     dataset_type: DatasetType,
-    filterbank_type: FilterbankType,
+    filterbank_type: FilterbankType
 ) -> dict:
     components = get_model_components(model_type, dataset_type, filterbank_type)
     dataset = get_dataset(model_type, dataset_type, filterbank_type)
@@ -247,7 +247,7 @@ def _load_and_benchmark_single(
     model_type: ModelType,
     dataset_type: DatasetType,
     filterbank_type: FilterbankType,
-    dataset,
+    dataset: Dataset,
 ) -> dict:
     _, _, test_dataloader = get_split_dataloaders(dataset)
 
@@ -270,7 +270,7 @@ def _load_and_benchmark_kfold(
     model_type: ModelType,
     dataset_type: DatasetType,
     filterbank_type: FilterbankType,
-    dataset,
+    dataset: Dataset,
 ) -> dict:
     folds = get_kfold_dataloaders(dataset, dataset_type)
     fold_metrics = []
@@ -459,9 +459,6 @@ def compare_models(
     plot_energy_comparison(ax2, names, macs, acs)
     plt.tight_layout()
     plt.show()
-
-    return results
-
 
 def _forward(model, inputs: torch.Tensor) -> torch.Tensor:
     outputs = model(inputs)

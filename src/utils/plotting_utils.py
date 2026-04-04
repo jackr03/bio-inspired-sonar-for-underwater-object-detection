@@ -82,7 +82,7 @@ def plot_accuracy_comparison(
     ax.bar_label(bars, labels=labels, padding=4)
     ax.set_title('Model Accuracies')
     ax.set_ylabel('Accuracy (%)')
-    ax.set_ylim(0, 100)
+    ax.set_ylim(0, 105)
 
 
 def plot_energy_comparison(
