@@ -75,7 +75,7 @@ def get_hyperparameter_suggestions(trial, model_type: ModelType) -> dict:
     match model_type:
         case ModelType.CNN:
             pass
-        case ModelType.SNN_DIRECT | ModelType.SNN:
+        case ModelType.SNN_DIRECT | ModelType.SNN_DIRECT_LT | ModelType.SNN:
             hyperparameters['model_init'].update(
                 {
                     'beta_init': trial.suggest_float('beta_init', 0.5, 0.99),

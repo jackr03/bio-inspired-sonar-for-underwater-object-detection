@@ -16,7 +16,7 @@ from src.types.model_type import ModelType
 
 def get_dataset(model_type: ModelType, dataset_type: DatasetType, filterbank_type: FilterbankType) -> Dataset:
     match model_type:
-        case ModelType.CNN | ModelType.SNN_DIRECT:
+        case ModelType.CNN | ModelType.SNN_DIRECT | ModelType.SNN_DIRECT_LT:
             return SpectrogramDataset(dataset_type, filterbank_type)
         case ModelType.SNN:
             return SpikeDataset(dataset_type, filterbank_type)

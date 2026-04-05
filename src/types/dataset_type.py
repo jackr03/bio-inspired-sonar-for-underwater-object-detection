@@ -80,7 +80,7 @@ class DatasetType(str, Enum):
                 config['channels'] = [16, 32]
 
         match model:
-            case ModelType.CNN | ModelType.SNN_DIRECT:
+            case ModelType.CNN | ModelType.SNN_DIRECT | ModelType.SNN_DIRECT_LT:
                 config['in_channels'] = 1
             case ModelType.SNN:
                 config['in_channels'] = 2

@@ -420,7 +420,7 @@ def benchmark(device, model, test_dataloader: DataLoader) -> dict:
     else:
         snn_ac_monitor.remove()
         macs = (
-            _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if model.name == ModelType.SNN_DIRECT else 0
+            _calculate_conv2d_macs(model, next(iter(test_dataloader))[0]) if model.name in (ModelType.SNN_DIRECT, ModelType.SNN_DIRECT_LT) else 0
         )
         total_acs = snn_ac_monitor.get_total_acs()
         acs = int(total_acs / total)

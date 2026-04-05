@@ -7,17 +7,17 @@ from src.types.model_type import ModelType
 
 
 class VGGBlock(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, beta_init: float, timesteps: int, spike_grad):
+    def __init__(self, in_channels: int, out_channels: int, beta_init: float, timesteps: int, spike_grad, learn_threshold: bool = False):
         super().__init__()
 
         beta1 = torch.ones(1, out_channels, 1, 1) * beta_init
         beta2 = torch.ones(1, out_channels, 1, 1) * beta_init
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
         self.bn1 = BatchNormTT2d(out_channels, time_steps=timesteps)
-        self.lif1 = snn.Leaky(spike_grad=spike_grad, beta=beta1, learn_beta=True)
+        self.lif1 = snn.Leaky(spike_grad=spike_grad, beta=beta1, learn_beta=True, learn_threshold=learn_threshold)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
         self.bn2 = BatchNormTT2d(out_channels, time_steps=timesteps)
-        self.lif2 = snn.Leaky(spike_grad=spike_grad, beta=beta2, learn_beta=True)
+        self.lif2 = snn.Leaky(spike_grad=spike_grad, beta=beta2, learn_beta=True, learn_threshold=learn_threshold)
         self.pool = nn.MaxPool2d(kernel_size=2)
 
     def forward(self, x: Tensor, mem1: Tensor, mem2: Tensor, t: int) -> tuple[Tensor, Tensor, Tensor]:
@@ -41,6 +41,7 @@ class SNNDirect(nn.Module):
         beta_init: float = 0.5,
         slope: int = 25,
         timesteps: int = 5,
+        learn_threshold: bool = False,
     ):
         super().__init__()
 
@@ -50,7 +51,7 @@ class SNNDirect(nn.Module):
 
         self.blocks = nn.ModuleList()
         for out_channels in channels:
-            self.blocks.append(VGGBlock(in_channels, out_channels, beta_init, timesteps, spike_grad))
+            self.blocks.append(VGGBlock(in_channels, out_channels, beta_init, timesteps, spike_grad, learn_threshold))
             in_channels = out_channels
 
         self.classifier = nn.Sequential(
@@ -61,7 +62,7 @@ class SNNDirect(nn.Module):
         )
 
         beta = torch.ones(num_classes) * beta_init
-        self.lif_out = snn.Leaky(spike_grad=spike_grad, beta=beta, learn_beta=True, output=True)
+        self.lif_out = snn.Leaky(spike_grad=spike_grad, beta=beta, learn_beta=True, learn_threshold=learn_threshold, output=True)
 
     def forward(self, x: Tensor) -> Tensor:
         block_mems = [block.init_leaky() for block in self.blocks]
