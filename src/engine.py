@@ -22,7 +22,7 @@ from src.utils.dataset_utils import (
     get_kfold_dataloaders,
 )
 from src.utils.model_utils import get_model_components, load_model_hyperparameters
-from src.utils.plotting_utils import plot_energy_comparison, plot_accuracy_comparison
+from src.utils.plotting_utils import plot_accuracy_comparison, plot_accuracy_comparison_grouped, plot_energy_comparison, plot_energy_comparison_grouped
 from src.utils.snn_ac_monitor import SNNACMonitor
 
 
@@ -441,22 +441,38 @@ def compare_models(
         results.append(result)
 
     is_kfold = 'aggregate' in results[0]
+    filterbanks = list(dict.fromkeys(r['filterbank'] for r in results))
+    groups = list(dict.fromkeys(r['model'] for r in results))
 
-    names = [r['model'] for r in results]
     if is_kfold:
-        accuracies = [r['aggregate']['accuracy']['mean'] for r in results]
-        accuracy_stds = [r['aggregate']['accuracy']['std'] for r in results]
-        macs = [r['aggregate']['macs'] for r in results]
-        acs = [r['aggregate']['acs'] for r in results]
+        get_acc = lambda r: r['aggregate']['accuracy']['mean']
+        get_std = lambda r: r['aggregate']['accuracy']['std']
+        get_macs = lambda r: r['aggregate']['macs']
+        get_acs = lambda r: r['aggregate']['acs']
     else:
-        accuracies = [r['benchmark']['accuracy'] for r in results]
-        accuracy_stds = None
-        macs = [r['benchmark']['macs'] for r in results]
-        acs = [r['benchmark']['acs'] for r in results]
+        get_acc = lambda r: r['benchmark']['accuracy']
+        get_std = None
+        get_macs = lambda r: r['benchmark']['macs']
+        get_acs = lambda r: r['benchmark']['acs']
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-    plot_accuracy_comparison(ax1, names, accuracies, accuracy_stds)
-    plot_energy_comparison(ax2, names, macs, acs)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+
+    if len(filterbanks) > 1:
+        results_by = {(r['model'], r['filterbank']): r for r in results}
+        accuracies = {fb: [get_acc(results_by[(g, fb)]) for g in groups] for fb in filterbanks}
+        stds = {fb: [get_std(results_by[(g, fb)]) for g in groups] for fb in filterbanks} if is_kfold else None
+        macs = {fb: [get_macs(results_by[(g, fb)]) for g in groups] for fb in filterbanks}
+        acs = {fb: [get_acs(results_by[(g, fb)]) for g in groups] for fb in filterbanks}
+        plot_accuracy_comparison_grouped(ax1, groups, filterbanks, accuracies, stds)
+        plot_energy_comparison_grouped(ax2, groups, filterbanks, macs, acs)
+    else:
+        accuracies = [get_acc(r) for r in results]
+        stds = [get_std(r) for r in results] if is_kfold else None
+        macs = [get_macs(r) for r in results]
+        acs = [get_acs(r) for r in results]
+        plot_accuracy_comparison(ax1, groups, accuracies, stds)
+        plot_energy_comparison(ax2, groups, macs, acs)
+
     plt.tight_layout()
     plt.show()
 
