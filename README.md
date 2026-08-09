@@ -38,7 +38,9 @@ src/
   run_train.py       # training + benchmarking
   engine.py          # train / k-fold / benchmark loops
   models/            # cnn, snn_direct, snn_direct_lt, snn (delta)
-  datasets/ utils/ types/
+  datasets/
+  utils/
+  types/
 notebooks/           # per-phase exploration + comparison
 hyperparameters/     # tuned configs
 jobs/                # SLURM scripts (CSF3)
